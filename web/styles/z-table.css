@@ -1,0 +1,87 @@
+/* Angkor-style commit table; mobile keeps its compact layout. */
+body:not(.mobileMode) #commitTable.autoLayout .graphCol {
+	box-sizing:border-box;
+	width:var(--limitGraphWidth, 120px);
+	min-width:var(--limitGraphWidth, 120px);
+	max-width:var(--limitGraphWidth, 120px);
+}
+body:not(.mobileMode) #commitTable.autoLayout .messageCol {
+	width:100%;
+	max-width:0;
+}
+body:not(.mobileMode) #commitTable .authorCol { min-width:112px; max-width:112px; }
+body:not(.mobileMode) #commitTable .hashCol { min-width:70px; max-width:70px; }
+body:not(.mobileMode) #commitTable .dateCol { min-width:80px; max-width:80px; text-align:right; }
+#commitTable th, #commitTable td {
+	font-family:var(--gg-font-sans);
+	color:var(--vscode-editor-foreground);
+	border-right:none;
+}
+#commitTable th { text-align:left; font-size:11px; font-weight:600; color:var(--vscode-descriptionForeground); }
+#commitTable td.messageCol { font-size:var(--git-graph-fontSize, 12px); }
+/* Commit messages follow the native VS Code graph/tree typography. */
+#commitTable td.messageCol .description > .text,
+#commitTable td.messageCol .wipRow > .text {
+	font-family:var(--vscode-font-family, system-ui, sans-serif);
+	font-size:var(--vscode-font-size, 13px);
+	font-weight:400;
+}
+#commitTable .authorCol, #commitTable .hashCol, #commitTable .dateCol { font-size:11px; color:var(--vscode-descriptionForeground); }
+#commitTable .hashCol { font-family:var(--gg-font-mono); }
+#commitTable tr.commit.current span.description .text { font-weight:500; }
+#commitTable tr.commit.mute td.text, #commitTable tr.commit.mute span.description .text { opacity:1; color:var(--vscode-descriptionForeground); }
+#commitTable .resizeCol { border-right:none; background:transparent; }
+#commitTable .resizeCol:hover { background:var(--vscode-focusBorder); }
+#commitGraph .graphAvatarRing:hover { transform:none; }
+#commitGraph .graphAvatarRing { fill:none; }
+
+/* Expanded commit details and file tree follow the message font; hash/date values use Inter. */
+#cdvSummary, #cdvFiles {
+	font-family:var(--vscode-font-family, system-ui, sans-serif);
+}
+#cdvSummary .cdvValueInter {
+	font-family:var(--gg-font-sans);
+}
+
+/* Reference overflow stays operable without widening the message column. */
+.refsGroup { display:inline-flex; flex-wrap:nowrap; align-items:center; gap:4px; position:relative; flex:0 1 auto; min-width:0; max-width:50%; margin-right:6px; }
+.refsGroup:empty { display:none; }
+.refsGroup > .gitRef { flex:0 1 auto; min-width:0; max-width:140px; text-overflow:ellipsis; white-space:nowrap; }
+.refsOverflow { flex:none; line-height:20px; }
+.refsOverflow > summary { cursor:pointer; list-style:none; border:1px solid var(--vscode-panel-border, #8886); border-radius:10px; padding:0 6px; font-size:11px; }
+.refsOverflow > summary::-webkit-details-marker { display:none; }
+.refsOverflow .refsMore { position:absolute; left:0; top:100%; z-index:30; display:flex; flex-direction:column; gap:4px; padding:8px; min-width:150px; background:var(--vscode-editor-background); border:1px solid var(--vscode-panel-border, #8886); border-radius:5px; }
+.refsOverflow:not([open]) .refsMore { display:none; }
+#commitTable .messageCol { overflow:visible; }
+#commitTable .messageCol .description { align-items:center; }
+#commitTable .messageCol .description .gitRef { flex-shrink:1; }
+body #view #commitTable .gitRef.head, body #view #commitTable .gitRef.remote, body #view #commitTable .gitRef.tag {
+	border-radius:4px;
+	height:20px;
+	line-height:20px;
+	margin-top:0;
+	margin-right:0;
+	color:var(--git-graph-color);
+	border:1px solid currentColor;
+	background:transparent;
+}
+body #view #commitTable .gitRef.head.active {
+	background:var(--git-graph-color);
+	color:#fff;
+	border-color:var(--git-graph-color);
+}
+body #view #commitTable .gitRef > svg {
+	width:14px;
+	height:14px;
+	padding:0;
+	margin:3px 3px 0 5px;
+	color:inherit;
+	background:none;
+}
+body #view #commitTable .gitRefHeadRemote svg {
+	width:12px;
+	height:12px;
+	margin-right:4px;
+	vertical-align:middle;
+}
+#commitTable .gitRefName, #commitTable .gitRefHeadRemote { line-height:20px; height:20px; }

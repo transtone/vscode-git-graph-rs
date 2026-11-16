@@ -4,6 +4,7 @@ interface ContextMenuAction {
 	readonly title: string;
 	readonly visible: boolean;
 	readonly onClick: () => void;
+	readonly children?: ContextMenuActions;
 	readonly checked?: boolean; // Required in checked context menus
 }
 
@@ -46,25 +47,19 @@ class ContextMenu {
 	 * @param className An optional class name to add to the context menu.
 	 */
 	public show(actions: ContextMenuActions, checked: boolean, target: ContextMenuTarget | null, event: MouseEvent, frameElem: HTMLElement, onClose: (() => void) | null = null, className: string | null = null) {
-		let html = '', handlers: (() => void)[] = [], handlerId = 0;
+		let handlerId = 0;
+		const handlers: ContextMenuAction[] = [];
 		this.close();
-
-		for (let i = 0; i < actions.length; i++) {
-			let groupHtml = '';
-			for (let j = 0; j < actions[i].length; j++) {
-				if (actions[i][j].visible) {
-					groupHtml += '<li class="contextMenuItem" data-index="' + handlerId++ + '">' + (checked ? '<span class="contextMenuItemCheck">' + (actions[i][j].checked ? SVG_ICONS.check : '') + '</span>' : '') + actions[i][j].title + '</li>';
-					handlers.push(actions[i][j].onClick);
-				}
-			}
-
-			if (groupHtml !== '') {
-				if (html !== '') html += '<li class="contextMenuDivider"></li>';
-				html += groupHtml;
-			}
-		}
-
-		if (handlers.length === 0) return; // No context menu actions are visible
+		const render = (groups: ContextMenuActions, isChecked: boolean): string => groups.map(group => group.filter(action => action.visible).map(action => {
+			const index = handlerId++;
+			handlers[index] = action;
+			const children = action.children ? render(action.children, false) : '';
+			return '<li class="contextMenuItem" role="menuitem" tabindex="-1" data-index="' + index + '"' + (children ? ' aria-haspopup="menu" aria-expanded="false"' : '') + '>'
+				+ (isChecked ? '<span class="contextMenuItemCheck">' + (action.checked ? SVG_ICONS.check : '') + '</span>' : '') + action.title
+				+ (children ? '<span class="submenuArrow" aria-hidden="true">' + SVG_ICONS.chevronDown + '</span><ul class="contextMenu contextSubmenu" role="menu" style="display:none">' + children + '</ul>' : '') + '</li>';
+		}).join('')).filter(Boolean).join('<li class="contextMenuDivider" role="separator"></li>');
+		const html = render(actions, checked);
+		if (handlers.length === 0) return;
 
 		const menu = document.createElement('ul');
 		menu.className = 'contextMenu' + (checked ? ' checked' : '') + (className !== null ? ' ' + className : '');
@@ -92,12 +87,56 @@ class ContextMenu {
 		this.elem = menu;
 		this.onClose = onClose;
 
-		addListenerToClass('contextMenuItem', 'click', (e) => {
-			// The user clicked on a context menu item => call the corresponding handler
-			e.stopPropagation();
-			this.close();
-			handlers[parseInt((<HTMLElement>(<Element>e.target).closest('.contextMenuItem')!).dataset.index!)]();
+		menu.setAttribute('role', 'menu');
+		menu.tabIndex = -1;
+		const submenuFor = (item: HTMLElement) => Array.from(item.children).find(child => child.classList.contains('contextSubmenu')) as HTMLElement | undefined;
+		const collapse = (item: HTMLElement) => {
+			const submenu = submenuFor(item);
+			if (submenu) { submenu.style.display = 'none'; item.setAttribute('aria-expanded', 'false'); }
+		};
+		const expand = (item: HTMLElement) => {
+			Array.from(item.parentElement!.children).forEach(sibling => { if (sibling !== item) collapse(sibling as HTMLElement); });
+			const submenu = submenuFor(item);
+			if (!submenu) return;
+			submenu.style.display = 'block';
+			item.setAttribute('aria-expanded', 'true');
+			const rect = item.getBoundingClientRect(), bounds = submenu.getBoundingClientRect();
+			submenu.style.left = Math.max(0, rect.right + bounds.width > window.innerWidth ? rect.left - bounds.width : rect.right) + 'px';
+			submenu.style.top = Math.max(0, Math.min(rect.top, window.innerHeight - bounds.height)) + 'px';
+		};
+		menu.querySelectorAll<HTMLElement>('.contextMenuItem').forEach(item => {
+			item.addEventListener('mouseenter', () => expand(item));
+			item.addEventListener('mouseleave', () => { if (!item.contains(document.activeElement)) collapse(item); });
 		});
+		menu.addEventListener('click', e => {
+			const item = (e.target as Element).closest<HTMLElement>('.contextMenuItem');
+			if (!item || !menu.contains(item)) return;
+			e.stopPropagation();
+			if (submenuFor(item)) { expand(item); return; }
+			const action = handlers[Number(item.dataset.index)];
+			this.close();
+			action.onClick();
+		});
+		menu.addEventListener('keydown', e => {
+			const item = (document.activeElement as HTMLElement)?.closest<HTMLElement>('.contextMenuItem');
+			const level = item?.parentElement ?? menu;
+			const items = Array.from(level.children).filter(child => child.classList.contains('contextMenuItem')) as HTMLElement[];
+			if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+				e.preventDefault();
+				const direction = e.key === 'ArrowDown' ? 1 : -1;
+				const index = items.indexOf(item!);
+				items[index < 0 ? (direction === 1 ? 0 : items.length - 1) : (index + direction + items.length) % items.length]?.focus();
+			} else if (e.key === 'ArrowRight' && item && submenuFor(item)) {
+				e.preventDefault(); expand(item); submenuFor(item)!.querySelector<HTMLElement>('.contextMenuItem')?.focus();
+			} else if ((e.key === 'ArrowLeft' || e.key === 'Escape') && level !== menu) {
+				e.preventDefault(); const parent = level.parentElement!; collapse(parent); parent.focus();
+			} else if (e.key === 'Escape' || e.key === 'Tab') {
+				if (e.key === 'Escape') e.preventDefault(); this.close();
+			} else if ((e.key === 'Enter' || e.key === ' ') && item) {
+				e.preventDefault(); item.click();
+			}
+		});
+		menu.focus();
 
 		menu.addEventListener('click', (e) => {
 			// The user clicked on the context menu (but not a specific item) => keep the context menu open to allow the user to reattempt clicking on a specific item

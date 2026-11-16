@@ -178,7 +178,7 @@ class Config {
 	 * Get the value of the `git-graph-rs.date.format` Extension Setting.
 	 */
 	get dateFormat(): DateFormat {
-		let configValue = this.config.get<string>('date.format', 'Date & Time'), type = DateFormatType.DateAndTime, iso = false;
+		let configValue = this.config.get<string>('date.format', 'Relative'), type = DateFormatType.DateAndTime, iso = false;
 		if (configValue === 'Relative') {
 			type = DateFormatType.Relative;
 		} else {
@@ -318,13 +318,13 @@ class Config {
 			// rendered undefined-coloured.
 			colours: validColours.length > 0
 				? validColours
-				: ['#0085d9', '#d9008f', '#00d90a', '#d98500', '#a300d9', '#ff0000', '#00d9cc', '#e138e8', '#85d900', '#dc5b23', '#6f24d6', '#ffcc00'],
+				: ['#0da2e7', '#f7911d', '#21c45d', '#9560f0', '#ef4343', '#2ec2b3', '#fbbd23', '#d948ef', '#3c83f6', '#f76808'],
 			style: this.config.get<string>('graph.style', 'rounded') === 'angular'
 				? GraphStyle.Angular
 				: GraphStyle.Rounded,
-			fontSize: this.config.get<number>('graph.fontSize', 13),
-			rowHeight: this.config.get<number>('graph.rowHeight', 24),
-			grid: { x: 16, y: this.config.get<number>('graph.rowHeight', 24), offsetX: 16, offsetY: this.config.get<number>('graph.rowHeight', 24) / 2, expandY: 250 },
+			fontSize: this.config.get<number>('graph.fontSize', 12),
+			rowHeight: this.config.get<number>('graph.rowHeight', 32),
+			grid: { x: 22, y: this.config.get<number>('graph.rowHeight', 32), offsetX: 16, offsetY: this.config.get<number>('graph.rowHeight', 32) / 2, expandY: 250 },
 			uncommittedChanges: this.config.get<string>('graph.uncommittedChanges', 'Open Circle at the Uncommitted Changes') === 'Open Circle at the Checked Out Commit'
 				? GraphUncommittedChangesStyle.OpenCircleAtTheCheckedOutCommit
 				: GraphUncommittedChangesStyle.OpenCircleAtTheUncommittedChanges

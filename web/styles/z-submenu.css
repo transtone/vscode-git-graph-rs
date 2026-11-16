@@ -1,0 +1,7 @@
+.contextMenu li[aria-haspopup="menu"] { position:relative; padding-right:32px; }
+.contextMenu .submenuArrow { position:absolute; right:10px; top:50%; width:14px; height:14px; transform:translateY(-50%) rotate(-90deg); }
+.contextMenu .submenuArrow svg { width:14px; height:14px; }
+.contextMenu.contextSubmenu { position:fixed; min-width:220px; animation:none; z-index:14; background:var(--vscode-menu-background, var(--vscode-editor-background, #fff)); }
+.contextMenu .contextMenuItem:focus { outline:none; background-color:var(--vscode-menu-selectionBackground, var(--vscode-menu-background)); color:var(--vscode-menu-selectionForeground, var(--vscode-menu-foreground)); }
+body.mobileMode .contextMenu.contextSubmenu { position:static; inset:auto; width:auto; min-width:0; max-height:none; padding:4px 0 4px 12px; margin:4px -10px 0 0; border-radius:0; box-shadow:none; transform:none; background:var(--vscode-menu-background, var(--m-sheet)); }
+body.mobileMode .contextMenu.contextSubmenu::before, body.mobileMode .contextMenu.contextSubmenu::after { display:none; }

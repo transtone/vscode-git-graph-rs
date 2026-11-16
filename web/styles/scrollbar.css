@@ -1,0 +1,7 @@
+/* Native webview scrolling with the VS Code scrollbar theme, without arrow buttons. */
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background:transparent; }
+::-webkit-scrollbar-button { display:none; width:0; height:0; }
+::-webkit-scrollbar-thumb { background:var(--vscode-scrollbarSlider-background, rgba(121,121,121,0.4)); }
+::-webkit-scrollbar-thumb:hover { background:var(--vscode-scrollbarSlider-hoverBackground, rgba(100,100,100,0.7)); }
+::-webkit-scrollbar-thumb:active { background:var(--vscode-scrollbarSlider-activeBackground, rgba(85,85,85,0.8)); }

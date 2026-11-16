@@ -5,7 +5,7 @@ import type {
 	GitResetMode, GitStash, GitTagDetails
 } from './git';
 import type { PullRequestConfig, PullRequestInfo } from './pullRequest';
-import type { CodeReview, GitRepoSet, GitRepoState } from './repoState';
+import type { CodeReview, GitRepoSet, GitRepoState, PullMethod } from './repoState';
 import type {
 	CommitAuthor, CommitOrdering, GitGraphViewConfig, GitGraphViewGlobalState, GitGraphViewSnapshot, GitGraphViewWorkspaceState,
 	LoadGitGraphViewTo, TagType
@@ -508,6 +508,7 @@ export interface ResponseLoadRepoInfo extends ResponseWithErrorInfo {
 	readonly isRepo: boolean;
 	readonly remoteRefsPending?: boolean; // true => the branch list is local-only: the remote-tracking refs are still being scanned and follow with a loadCommits response
 	readonly operationState: GitOperationState;
+	readonly workingTree?: { total: number; staged: number; modified: number; conflicts: number } | null;
 }
 
 export interface RequestContinueOperation extends RepoRequest {
@@ -700,6 +701,8 @@ export interface ResponsePruneRemote extends ResponseWithErrorInfo {
 }
 
 export interface RequestPullBranch extends RepoRequest {
+	readonly method?: PullMethod;
+	readonly expectedBranch?: string;
 	readonly command: 'pullBranch';
 	readonly branchName: string;
 	readonly remote: string;

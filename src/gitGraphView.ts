@@ -585,11 +585,12 @@ export class GitGraphView extends Disposable {
 		this.restoredSnapshot = restoredSnapshot;
 
 		const config = getConfig();
-		this.panel = existingPanel || vscode.window.createWebviewPanel('git-graph-rs', 'Git Graph RS', column || vscode.ViewColumn.One, {
+		this.panel = existingPanel || vscode.window.createWebviewPanel('git-graph-rs', 'YA Git Graph', column || vscode.ViewColumn.One, {
 			enableScripts: true,
-			localResourceRoots: [vscode.Uri.file(path.join(extensionPath, 'media'))],
+			localResourceRoots: [vscode.Uri.file(path.join(extensionPath, 'media')), vscode.Uri.file(path.join(extensionPath, 'resources'))],
 			retainContextWhenHidden: config.retainContextWhenHidden
 		});
+		this.panel.title = 'YA Git Graph';
 		this.panel.iconPath = config.tabIconColourTheme === TabIconColourTheme.Colour
 			? this.getResourcesUri('git-graph-rs-webview-icon.svg')
 			: {
@@ -1373,9 +1374,10 @@ export class GitGraphView extends Disposable {
 				// blink the remote entries out of the dropdown and back on a soft refresh, so the
 				// complete list is scanned for this response right away.
 				const deferRemoteRefs = msg.showRemoteBranches && !this.viewHasCommits;
-				const [repoInfo, operationState] = await Promise.all([
+				const [repoInfo, operationState, workingTree] = await Promise.all([
 					this.dataSource.getRepoInfo(msg.repo, msg.showRemoteBranches, msg.showStashes, msg.hideRemotes, deferRemoteRefs),
-					this.dataSource.getOperationState(msg.repo)
+					this.dataSource.getOperationState(msg.repo),
+					this.dataSource.getWorkingTreeSummary(msg.repo).catch(() => null)
 				]);
 				let isRepo = true;
 				if (repoInfo.error) {
@@ -1389,7 +1391,8 @@ export class GitGraphView extends Disposable {
 					...repoInfo,
 					isRepo: isRepo,
 					remoteRefsPending: deferRemoteRefs || undefined,
-					operationState: operationState
+					operationState: operationState,
+					workingTree
 				});
 				this.logger.log('Loaded repository info in ' + (Date.now() - startTime) + ' ms (' + repoInfo.branches.length + ' branches)');
 				if (msg.repo !== this.currentRepo) {
@@ -1473,7 +1476,7 @@ export class GitGraphView extends Disposable {
 			case 'pullBranch':
 				this.sendMessage({
 					command: 'pullBranch',
-					error: await this.dataSource.pullBranch(msg.repo, msg.branchName, msg.remote, msg.createNewCommit, msg.squash)
+					error: await this.dataSource.pullBranch(msg.repo, msg.branchName, msg.remote, msg.createNewCommit, msg.squash, msg.method, msg.expectedBranch)
 				});
 				break;
 			case 'pushBranch': {
@@ -1608,7 +1611,7 @@ export class GitGraphView extends Disposable {
 			case 'viewDiffBinary':
 				// The native Diff View can't show a binary/image file (both panes would be
 				// empty): the same standalone tab the Commit Comparison View opens for one does.
-				BinaryCompareView.open(this.dataSource, msg.repo, resolveDiffFromHash(msg.fromHash, msg.toHash), msg.toHash, {
+				BinaryCompareView.open(this.extensionPath, this.dataSource, msg.repo, resolveDiffFromHash(msg.fromHash, msg.toHash), msg.toHash, {
 					oldFilePath: msg.oldFilePath,
 					newFilePath: msg.newFilePath,
 					type: msg.type,
@@ -1854,15 +1857,17 @@ export class GitGraphView extends Disposable {
 			numRepos > 0 && (!this.dataSource.isGitExecutableUnknown() || hasEngineForPlatform(this.extensionPath));
 		this.loadViewTo = null;
 		this.restoredSnapshot = null;
+		const fontsUri = this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(this.extensionPath, 'resources', 'fonts.css')));
 
 		return `<!DOCTYPE html>
 		<html lang="en">
 			<head>
 				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${standardiseCspSource(this.panel.webview.cspSource)} 'unsafe-inline'; script-src 'nonce-${nonce}'${automationShimJs !== '' ? " 'unsafe-eval'" : ''}; img-src data: https:;">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${standardiseCspSource(this.panel.webview.cspSource)} 'unsafe-inline'; font-src ${standardiseCspSource(this.panel.webview.cspSource)}; script-src 'nonce-${nonce}'${automationShimJs !== '' ? " 'unsafe-eval'" : ''}; img-src data: https:;">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+				<link rel="stylesheet" type="text/css" href="${fontsUri}">
 				<link rel="stylesheet" type="text/css" href="${this.getMediaUri('out.min.css')}?v=${getMediaCacheVersion(this.extensionPath)}">
-				<title>Git Graph</title>
+				<title>YA Git Graph</title>
 				<style>body{${colorVars}} ${colorParams}</style>
 			</head>
 			${body}

@@ -67,12 +67,12 @@ describe('fast scrolling keeps the newly exposed rows rendered (windowed renderi
 		assert.ok(extent.last > lastVisible + 12, 'the window leads the fling downwards (window ends at ' + extent.last + ', viewport ends at ' + lastVisible + ')');
 		assert.ok(extent.first <= firstVisible, 'the viewport top stays covered (window starts at ' + extent.first + ', viewport starts at ' + firstVisible + ')');
 
-		// After the fling rests, the window re-tightens (the lead decays away and the one-shot
-		// re-tighten timer fires)
+		// Once scrolling rests, keep the bounded lead-rendered window. Shrinking it in a delayed
+		// layout pass changes native scrollbar geometry immediately after thumb release.
 		await new Promise((resolve) => setTimeout(resolve, 600));
-		await h.scrollTo(firstVisible); // a slow repositioning scroll (one event, far from the last)
 		const settled = renderedExtent(h);
-		assert.ok(settled.last <= lastVisible + 14, 'an idle view keeps the tight window (window ends at ' + settled.last + ', viewport ends at ' + lastVisible + ')');
+		assert.ok(settled.last >= lastVisible, 'the resting window still covers the viewport');
+		assert.ok(settled.last <= lastVisible + 50 + 14, 'the retained velocity lead stays within its configured cap');
 	});
 });
 

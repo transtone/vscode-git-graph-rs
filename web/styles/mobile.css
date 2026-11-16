@@ -41,7 +41,7 @@ body.mobileMode{
 	--m-target:44px;
 	--m-bar:52px;
 	--m-radius:12px;
-	--m-mono:var(--vscode-editor-font-family, ui-monospace, Menlo, monospace);
+	--m-mono:var(--gg-font-mono);
 	-webkit-tap-highlight-color:transparent;
 	/* A long press opens the view's own action sheet (observeLongPress), not the iOS callout */
 	-webkit-touch-callout:none;
@@ -154,12 +154,12 @@ body.mobileMode #controls .dropdownCurrentValue::before{
 	width:14px;
 	height:14px;
 	background-color:var(--m-fg-2);
-	-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16'%3E%3Cpath d='M10 5c0-1.11-.89-2-2-2a1.993 1.993 0 0 0-1 3.72v.3c-.02.52-.23.98-.63 1.38-.4.4-.86.61-1.38.63-.83.02-1.48.16-2 .45V4.72a1.993 1.993 0 0 0-1-3.72C.88 1 0 1.89 0 3a2 2 0 0 0 1 1.72v6.56c-.59.35-1 .99-1 1.72 0 1.11.89 2 2 2 1.11 0 2-.89 2-2 0-.53-.2-1-.53-1.36.09-.06.48-.41.59-.47.25-.11.56-.17.94-.17 1.05-.05 1.95-.45 2.75-1.25S8.95 7.77 9 6.73h-.02C9.59 6.37 10 5.73 10 5zM2 1.8c.66 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2C1.35 4.2.8 3.65.8 3c0-.65.55-1.2 1.2-1.2zm0 12.41c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2zm6-8c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2z'/%3E%3C/svg%3E") center/contain no-repeat;
-	mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16'%3E%3Cpath d='M10 5c0-1.11-.89-2-2-2a1.993 1.993 0 0 0-1 3.72v.3c-.02.52-.23.98-.63 1.38-.4.4-.86.61-1.38.63-.83.02-1.48.16-2 .45V4.72a1.993 1.993 0 0 0-1-3.72C.88 1 0 1.89 0 3a2 2 0 0 0 1 1.72v6.56c-.59.35-1 .99-1 1.72 0 1.11.89 2 2 2 1.11 0 2-.89 2-2 0-.53-.2-1-.53-1.36.09-.06.48-.41.59-.47.25-.11.56-.17.94-.17 1.05-.05 1.95-.45 2.75-1.25S8.95 7.77 9 6.73h-.02C9.59 6.37 10 5.73 10 5zM2 1.8c.66 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2C1.35 4.2.8 3.65.8 3c0-.65.55-1.2 1.2-1.2zm0 12.41c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2zm6-8c-.66 0-1.2-.55-1.2-1.2 0-.65.55-1.2 1.2-1.2.65 0 1.2.55 1.2 1.2 0 .65-.55 1.2-1.2 1.2z'/%3E%3C/svg%3E") center/contain no-repeat;
+	-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-git-branch%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%3E%3Cline%20x1%3D%226%22%20x2%3D%226%22%20y1%3D%223%22%20y2%3D%2215%22%3E%3C%2Fline%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%226%22%20r%3D%223%22%3E%3C%2Fcircle%3E%3Ccircle%20cx%3D%226%22%20cy%3D%2218%22%20r%3D%223%22%3E%3C%2Fcircle%3E%3Cpath%20d%3D%22M18%209a9%209%200%200%201-9%209%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E") center/contain no-repeat;
+	mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-git-branch%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%3E%3Cline%20x1%3D%226%22%20x2%3D%226%22%20y1%3D%223%22%20y2%3D%2215%22%3E%3C%2Fline%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%226%22%20r%3D%223%22%3E%3C%2Fcircle%3E%3Ccircle%20cx%3D%226%22%20cy%3D%2218%22%20r%3D%223%22%3E%3C%2Fcircle%3E%3Cpath%20d%3D%22M18%209a9%209%200%200%201-9%209%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E") center/contain no-repeat;
 }
 body.mobileMode #repoDropdown .dropdownCurrentValue::before{
-	-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M4 9H3V8h1v1zm0-3H3v1h1V6zm0-2H3v1h1V4zm0-2H3v1h1V2zm8-1v12c0 .55-.45 1-1 1H6v2l-1.5-1.5L3 16v-2H1c-.55 0-1-.45-1-1V1c0-.55.45-1 1-1h10c.55 0 1 .45 1 1zm-1 10H1v2h2v-1h3v1h5v-2zm0-10H2v9h9V1z'/%3E%3C/svg%3E") center/contain no-repeat;
-	mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 16'%3E%3Cpath d='M4 9H3V8h1v1zm0-3H3v1h1V6zm0-2H3v1h1V4zm0-2H3v1h1V2zm8-1v12c0 .55-.45 1-1 1H6v2l-1.5-1.5L3 16v-2H1c-.55 0-1-.45-1-1V1c0-.55.45-1 1-1h10c.55 0 1 .45 1 1zm-1 10H1v2h2v-1h3v1h5v-2zm0-10H2v9h9V1z'/%3E%3C/svg%3E") center/contain no-repeat;
+	-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-folder-git2%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%3E%3Cpath%20d%3D%22M9%2020H4a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h3.9a2%202%200%200%201%201.69.9l.81%201.2a2%202%200%200%200%201.67.9H20a2%202%200%200%201%202%202v5%22%3E%3C%2Fpath%3E%3Ccircle%20cx%3D%2213%22%20cy%3D%2212%22%20r%3D%222%22%3E%3C%2Fcircle%3E%3Cpath%20d%3D%22M18%2019c-2.8%200-5-2.2-5-5v8%22%3E%3C%2Fpath%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2219%22%20r%3D%222%22%3E%3C%2Fcircle%3E%3C%2Fsvg%3E") center/contain no-repeat;
+	mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-folder-git2%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%3E%3Cpath%20d%3D%22M9%2020H4a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2h3.9a2%202%200%200%201%201.69.9l.81%201.2a2%202%200%200%200%201.67.9H20a2%202%200%200%201%202%202v5%22%3E%3C%2Fpath%3E%3Ccircle%20cx%3D%2213%22%20cy%3D%2212%22%20r%3D%222%22%3E%3C%2Fcircle%3E%3Cpath%20d%3D%22M18%2019c-2.8%200-5-2.2-5-5v8%22%3E%3C%2Fpath%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2219%22%20r%3D%222%22%3E%3C%2Fcircle%3E%3C%2Fsvg%3E") center/contain no-repeat;
 }
 body.mobileMode #controls .dropdownCurrentValue::after, body.mobileMode #controls .dropdown.dropdownOpen .dropdownCurrentValue::after{
 	top:12px;
@@ -168,8 +168,8 @@ body.mobileMode #controls .dropdownCurrentValue::after, body.mobileMode #control
 	height:12px;
 	border:none;
 	background-color:var(--m-fg-2);
-	-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
-	mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+	-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-chevron-down%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E") center/contain no-repeat;
+	mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-chevron-down%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E") center/contain no-repeat;
 	transition:transform 160ms var(--gg-ease, ease-out);
 }
 body.mobileMode #controls .dropdown.dropdownOpen .dropdownCurrentValue{
@@ -327,8 +327,8 @@ body.mobileMode .dropdownOption.selected::before{
 	height:14px;
 	margin-top:-7px;
 	background-color:currentColor;
-	-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2.5 7.5 5.5 10.5 11.5 3.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
-	mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2.5 7.5 5.5 10.5 11.5 3.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat;
+	-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-chevron-down%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E") center/contain no-repeat;
+	mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-chevron-down%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E") center/contain no-repeat;
 }
 body.mobileMode .dropdownOption:hover, body.mobileMode .dropdownOption.highlighted{
 	background-color:transparent;
@@ -1137,7 +1137,7 @@ body.mobileMode #cdvFiles .fileTreeFolder{
 }
 body.mobileMode #cdvFiles .fileTreeFolderIcon{
 	display:inline-flex;
-	margin-right:8px;
+	margin-right:4px;
 	opacity:0.8;
 }
 

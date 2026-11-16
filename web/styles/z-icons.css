@@ -1,0 +1,55 @@
+/* Lucide uses strokes; legacy icon rules below are also used by retained filled icons. */
+svg.lucide, svg.lucide * {
+	fill:none !important;
+	stroke:currentColor !important;
+	stroke-width:2 !important;
+	stroke-opacity:1 !important;
+}
+.contextMenu.checked li.contextMenuItem .contextMenuItemCheck svg{color:var(--vscode-menu-foreground);}
+.contextMenu.checked li.contextMenuItem:hover .contextMenuItemCheck svg{color:var(--vscode-menu-selectionForeground);}
+.dialog svg{color:var(--vscode-menu-foreground);}
+.dialog .dialogAlert.warning svg{color:var(--vscode-errorForeground, #f48771);}
+.customSelectOptions.multiple > .customSelectOption > .selectedIcon svg{color:var(--vscode-menu-foreground);}
+.customSelectOptions.multiple > .customSelectOption.focussed > .selectedIcon svg{color:var(--vscode-menu-selectionForeground, var(--vscode-menu-foreground));}
+.dropdownOptionInfo svg{color:var(--vscode-menu-foreground);}
+.dropdownOptionMultiSelected svg{color:var(--vscode-menu-foreground);}
+.dropdownOption:hover svg, .dropdownOption.highlighted svg{color:var(--vscode-menu-selectionForeground, var(--vscode-menu-foreground));}
+.findWidget{color:var(--vscode-editorSuggestWidget-foreground);}
+.cdvControlBtn svg{color:var(--vscode-editor-foreground);}
+.signatureInfo.G svg, .signatureInfo.X svg{color:var(--vscode-charts-green, #009028);}
+.signatureInfo.U svg, .signatureInfo.Y svg, .signatureInfo.R svg, .signatureInfo.E svg{color:var(--vscode-editorWarning-foreground, #f09000);}
+.signatureInfo.B svg{color:var(--vscode-charts-red, #e00000);}
+#cdvLoading svg{color:var(--vscode-editor-foreground);}
+svg.openFolderIcon, svg.closedFolderIcon, svg.fileIcon, .fileTreeFileAction svg, #cdvLastFileViewed svg{color:var(--vscode-editor-foreground);}
+.gitRef > svg{color:var(--vscode-editor-background);}
+#loadingHeader svg{color:var(--vscode-editor-foreground);}
+#currentBtn svg, #findBtn svg, #filterBtn svg, #statisticsBtn svg, #terminalBtn svg, #settingsBtn svg, #fetchBtn svg, #refreshBtn svg{color:var(--vscode-editor-foreground);}
+#filterBtn.active svg{color:var(--vscode-textLink-foreground, var(--vscode-editor-foreground));}
+#commitTable tr.commit span.description .openChangesBtn svg{color:var(--vscode-editor-foreground);}
+.gitRef.gerrit svg{color:var(--gg-icon);}
+.gg-dialog .gg-head-icon svg{color:var(--gg-icon);}
+.gg-event-toggle svg{color:var(--gg-muted-foreground);}
+body.mobileMode #controlBtns svg{color:var(--m-fg);}
+body.mobileMode #controlBtns > #filterBtn.active svg{color:var(--m-accent);}
+body.mobileMode #cdvFileViewTypeList.active svg, body.mobileMode #cdvFileViewTypeTree.active svg{color:var(--m-accent-on);}
+#reflogWidget{color:var(--vscode-editorSuggestWidget-foreground);}
+.reflogMessageCol svg{color:var(--vscode-errorForeground, #bb4b4b);}
+#settingsWidget{color:var(--vscode-editorSuggestWidget-foreground);}
+#statisticsWidget{color:var(--vscode-editorSuggestWidget-foreground);}
+#worktreeWidget{color:var(--vscode-editorSuggestWidget-foreground);}
+
+/* 14px file and folder glyphs centered in stable 16px slots and 18px rows. */
+.fileTreeFolderIcon, .fileTreeFileIcon, .fileTreeRepoIcon {
+	width:16px !important;
+}
+.fileTreeFolderIcon > svg.lucide, .fileTreeFileIcon > svg.lucide, .fileTreeRepoIcon > svg.lucide {
+	width:14px !important;
+	height:14px !important;
+	left:1px;
+	top:2px !important;
+}
+
+/* 16px desktop actions, centered in the existing 24px controls. */
+#controlBtns > div > svg.lucide { width:16px !important; height:16px !important; left:2px; top:2px; }
+.cdvControlBtn > svg.lucide { width:16px; height:16px; left:4px; top:4px; }
+body.mobileMode #controlBtns > div > svg.lucide { width:20px !important; height:20px !important; left:auto; top:auto; }

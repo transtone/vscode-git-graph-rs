@@ -1,3 +1,4 @@
+import { COMPARISON_ICONS } from './utils/icons';
 import { DataSource } from './dataSource';
 import { HEX_BYTES_PER_ROW, HEX_ROW_HEIGHT, HexDiffSession, HexSection } from './hexDiff';
 import { t } from './i18n';
@@ -137,7 +138,8 @@ export function binaryCompareCss(): string {
 		#hexToolbar button:disabled, #imgToolbar button:disabled { opacity: 0.45; cursor: default; }
 		/* The ruler and the rows share one font: the ch-based grid tracks only line up when
 		   both measure the same monospace glyph. */
-		#hexScroller { flex: 1; overflow: auto; font-family: var(--vscode-editor-font-family, Consolas, monospace); font-size: var(--vscode-editor-font-size, 13px); color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); }
+		#hexScroller { flex: 1; overflow: auto; font-family: var(--gg-font-mono); font-size: var(--vscode-editor-font-size, 13px); color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); }
+		#hexToolbar button svg { width:16px; height:16px; vertical-align:middle; }
 		#hexInner { display: inline-block; min-width: 100%; }
 		/* The sticky head: each pane's caption (which side, how many bytes) over the column
 		   ruler — one hex digit above every byte column and again above the ASCII pane, so a
@@ -345,7 +347,7 @@ export function binaryCompareScript(): string {
 		probe.style.visibility = 'hidden';
 		probe.style.position = 'absolute';
 		probe.style.whiteSpace = 'pre';
-		probe.style.fontFamily = 'var(--vscode-editor-font-family, Consolas, monospace)';
+		probe.style.fontFamily = 'var(--gg-font-mono)';
 		probe.style.fontSize = 'var(--vscode-editor-font-size, 13px)';
 		probe.textContent = '0000000000000000000000000000';
 		document.body.appendChild(probe);
@@ -808,9 +810,9 @@ export function binaryCompareScript(): string {
 					'<span id="hexCopyStatus" class="hxCopyStatus"></span>' +
 					'<span class="hxSpacer"></span>' +
 					(currentFileIsImage ? '<button id="hexImageBtn">${t('compareImageToggleButton')}</button>' : '') +
-					'<button id="hexPrevBtn" title="${t('compareHexPrevDiff')}">&#9650;</button>' +
+					'<button id="hexPrevBtn" title="${t('compareHexPrevDiff')}">${COMPARISON_ICONS.arrowUp}</button>' +
 					'<span id="hexDiffStatus">${t('compareHexAnalysing')}</span>' +
-					'<button id="hexNextBtn" title="${t('compareHexNextDiff')}">&#9660;</button>' +
+					'<button id="hexNextBtn" title="${t('compareHexNextDiff')}">${COMPARISON_ICONS.arrowDown}</button>' +
 				'</div>' +
 				'<div id="hexScroller"><div id="hexInner">' +
 					'<div id="hexHead">' +

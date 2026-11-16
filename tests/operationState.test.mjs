@@ -81,6 +81,16 @@ describe('getOperationState / continueOperation / abortOperation', () => {
 		fs.rmSync(repoPath, { recursive: true, force: true });
 	});
 
+	it('counts staged, unstaged and renamed paths from real porcelain status', async () => {
+		git(['mv', 'file.txt', 'renamed.txt']);
+		fs.appendFileSync(path.join(repoPath, 'renamed.txt'), 'unstaged\n');
+		try {
+			assert.deepEqual(await dataSource.getWorkingTreeSummary(repoPath), { total: 1, staged: 1, modified: 1, conflicts: 0 });
+		} finally {
+			git(['reset', '--hard', 'HEAD']);
+		}
+	});
+
 	it('reports no operation in progress in a clean repository', async () => {
 		const state = await dataSource.getOperationState(repoPath);
 		assert.deepStrictEqual(state, { type: null, conflictedFiles: [], progress: null });

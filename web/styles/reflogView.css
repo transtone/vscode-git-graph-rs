@@ -110,7 +110,7 @@
 
 .reflogHashCol{
 	width:76px;
-	font-family:var(--vscode-editor-font-family, monospace);
+	font-family:var(--gg-font-mono);
 	opacity:0.85;
 }
 .reflogMessageCol{

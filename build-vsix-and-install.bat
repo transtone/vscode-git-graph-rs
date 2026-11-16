@@ -77,13 +77,13 @@ goto :package-done
 echo [4/5] Packaging the %WIN_PLATFORM% vsix...
 rem Only this platform's stale vsix files are cleared - artifacts of the
 rem universal and other-platform packaging runs are left alone.
-for /f "delims=" %%i in ('dir /b /o-d "git-graph-rs-*-%WIN_PLATFORM%.vsix" 2^>nul') do (
+for /f "delims=" %%i in ('dir /b /o-d "ya-git-graph-*-%WIN_PLATFORM%.vsix" 2^>nul') do (
     del "%%i" 2>nul
 )
 call node scripts\package-platforms.mjs %WIN_PLATFORM% || goto :fail
 
 set "VSIX="
-for /f "delims=" %%i in ('dir /b /o-d "git-graph-rs-*-%WIN_PLATFORM%.vsix" 2^>nul') do (
+for /f "delims=" %%i in ('dir /b /o-d "ya-git-graph-*-%WIN_PLATFORM%.vsix" 2^>nul') do (
     if not defined VSIX set "VSIX=%%i"
 )
 

@@ -220,29 +220,10 @@ function getBranchContextMenuActions(view: GitGraphView, target: DialogTarget & 
 
 		}, {
 
-			title: strings.menuPullBranch + ELLIPSIS,
-
-			visible: visibility.pull && view.gitRemotes.length > 0,
-
-			onClick: () => {
-
-				dialog.showForm(formatStr(strings.updateBranchConfirm, escapeHtml(refName), escapeHtml(view.gitRemotes[0] + '/' + refName)), [{
-
-					type: DialogInputType.Checkbox,
-
-					name: strings.forceUpdateCheckbox,
-
-					value: view.config.dialogDefaults.fetchIntoLocalBranch.forceFetch,
-
-					info: strings.forceUpdateInfo
-
-				}], strings.yesUpdate, (values) => {
-
-					runAction({ command: 'fetchIntoLocalBranch', repo: view.currentRepo, remote: view.gitRemotes[0], remoteBranch: refName, localBranch: refName, force: <boolean>values[0] }, strings.updatingBranch);
-
-				}, target);
-
-			}
+			title: strings.menuPullBranch,
+			visible: visibility.pull && view.gitRemotes.length > 0 && view.gitBranchHead === refName,
+			children: getPullMethodActions(view, '', ''),
+			onClick: () => {}
 
 		}
 
@@ -843,25 +824,10 @@ function getRemoteBranchContextMenuActions(view: GitGraphView, remote: string, t
 
 		}, {
 
-			title: strings.menuPullIntoCurrentBranch + ELLIPSIS,
-
+			title: formatStr(strings.pullIntoBranchMenu, escapeHtml(view.gitBranchHead ?? 'HEAD')),
 			visible: visibility.pull && remote !== '',
-
-			onClick: () => {
-
-				dialog.showForm(formatStr(strings.pullBranchConfirm, escapeHtml(refName), view.gitBranchHead !== null ? '<b><i>' + escapeHtml(view.gitBranchHead) + '</i></b>' + strings.currentBranchSuffix : strings.currentBranchPlain), [
-
-					{ type: DialogInputType.Checkbox, name: strings.noFastForwardCheckbox, value: view.config.dialogDefaults.pullBranch.noFastForward },
-
-					{ type: DialogInputType.Checkbox, name: strings.squashCommitsCheckbox, value: view.config.dialogDefaults.pullBranch.squash, info: strings.squashRemoteBranchInfo }
-
-				], strings.yesPull, (values) => {
-
-					runAction({ command: 'pullBranch', repo: view.currentRepo, branchName: branchName, remote: remote, createNewCommit: <boolean>values[0], squash: <boolean>values[1] }, strings.pullingBranch);
-
-				}, target);
-
-			}
+			children: getPullMethodActions(view, remote, branchName),
+			onClick: () => {}
 
 		}
 

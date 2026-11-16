@@ -700,17 +700,17 @@ function renderCommitDetailsView(view: GitGraphView, refresh: boolean) {
 
 					html += '<span class="cdvSummaryTop' + (expandedCommit.avatar !== null ? ' withAvatar' : '') + '"><span class="cdvSummaryTopRow"><span class="cdvSummaryKeyValues">'
 
-						+ strings.cdvCommitLabel + escapeHtml(commitDetails.hash) + '<br>'
+						+ strings.cdvCommitLabel + '<span class="cdvValueInter">' + escapeHtml(commitDetails.hash) + '</span><br>'
 
-						+ strings.cdvParentsLabel + parents + '<br>'
+						+ strings.cdvParentsLabel + '<span class="cdvValueInter">' + parents + '</span><br>'
 
 						+ strings.cdvAuthorLabel + escapeHtml(commitDetails.author) + (commitDetails.authorEmail !== '' ? ' &lt;<a class="' + CLASS_EXTERNAL_URL + '" href="mailto:' + escapeHtml(commitDetails.authorEmail) + '" tabindex="-1">' + escapeHtml(commitDetails.authorEmail) + '</a>&gt;' : '') + '<br>'
 
-						+ (commitDetails.authorDate !== commitDetails.committerDate ? strings.cdvAuthorDateLabel + formatLongDate(commitDetails.authorDate) + '<br>' : '')
+						+ (commitDetails.authorDate !== commitDetails.committerDate ? strings.cdvAuthorDateLabel + '<span class="cdvValueInter">' + formatLongDate(commitDetails.authorDate) + '</span><br>' : '')
 
 						+ strings.cdvCommitterLabel + escapeHtml(commitDetails.committer) + (commitDetails.committerEmail !== '' ? ' &lt;<a class="' + CLASS_EXTERNAL_URL + '" href="mailto:' + escapeHtml(commitDetails.committerEmail) + '" tabindex="-1">' + escapeHtml(commitDetails.committerEmail) + '</a>&gt;' : '') + (commitDetails.signature !== null ? generateSignatureHtml(commitDetails.signature) : '') + '<br>'
 
-						+ (commitDetails.authorDate !== commitDetails.committerDate ? strings.cdvCommitterDateLabel : strings.cdvDateLabel) + formatLongDate(commitDetails.committerDate)
+						+ (commitDetails.authorDate !== commitDetails.committerDate ? strings.cdvCommitterDateLabel : strings.cdvDateLabel) + '<span class="cdvValueInter">' + formatLongDate(commitDetails.committerDate) + '</span>'
 
 						+ '</span>'
 

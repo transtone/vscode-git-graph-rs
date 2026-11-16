@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { BinaryComparePost, binaryCompareCss, binaryCompareScript, createHexSession, isImageChange, respondCopyToClipboard, respondHexInfo, respondImageData, respondHexRows, wireHexSession } from './binaryCompare';
 import { DataSource } from './dataSource';
@@ -25,7 +26,7 @@ export class BinaryCompareView extends Disposable {
 	 * Opens a Binary Compare View for one file, reusing (and revealing) the existing tab when
 	 * the same file is compared between the same revisions again.
 	 */
-	public static open(dataSource: DataSource, repo: string, fromHash: string, toHash: string, file: GitFileChange) {
+	public static open(extensionPath: string, dataSource: DataSource, repo: string, fromHash: string, toHash: string, file: GitFileChange) {
 		const filePath = file.newFilePath !== '' ? file.newFilePath : file.oldFilePath;
 		const key = repo + '\n' + fromHash + '\n' + toHash + '\n' + filePath;
 		const existing = BinaryCompareView.openViews.get(key);
@@ -33,16 +34,17 @@ export class BinaryCompareView extends Disposable {
 			existing.panel.reveal();
 			return;
 		}
-		new BinaryCompareView(dataSource, repo, fromHash, toHash, file, key);
+		new BinaryCompareView(extensionPath, dataSource, repo, fromHash, toHash, file, key);
 	}
 
-	private constructor(dataSource: DataSource, repo: string, private readonly fromHash: string, private readonly toHash: string, file: GitFileChange, key: string) {
+	private constructor(private readonly extensionPath: string, dataSource: DataSource, repo: string, private readonly fromHash: string, private readonly toHash: string, file: GitFileChange, key: string) {
 		super();
 
 		const filePath = file.newFilePath !== '' ? file.newFilePath : file.oldFilePath;
 		const toLabel = toHash === UNCOMMITTED || toHash === '' ? t('comparePresentLabel') : abbrevCommit(toHash);
 		this.panel = vscode.window.createWebviewPanel('git-graph-rs.binaryCompare', t('binaryCompareTitle', filePath, abbrevCommit(fromHash), toLabel), vscode.ViewColumn.Active, {
-			enableScripts: true
+			enableScripts: true,
+			localResourceRoots: [vscode.Uri.file(path.join(this.extensionPath, 'resources'))]
 		});
 
 		this.session = createHexSession(dataSource, repo, fromHash, toHash, file);
@@ -88,6 +90,7 @@ export class BinaryCompareView extends Disposable {
 	 */
 	private getHtml(filePath: string, file: GitFileChange) {
 		const nonce = getNonce();
+		const fontsUri = this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(this.extensionPath, 'resources', 'fonts.css')));
 		const statusColour = file.type === 'D' ? 'var(--vscode-gitDecoration-deletedResourceForeground, #b31d28)'
 			: file.type === 'A' || file.type === 'R' ? 'var(--vscode-gitDecoration-addedResourceForeground, #22863a)'
 			: 'var(--vscode-gitDecoration-modifiedResourceForeground, inherit)';
@@ -97,13 +100,14 @@ export class BinaryCompareView extends Disposable {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; img-src data:; script-src 'nonce-${nonce}';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; font-src ${this.panel.webview.cspSource}; img-src data:; script-src 'nonce-${nonce}';">
+<link rel="stylesheet" type="text/css" href="${fontsUri}">
 <style>
-	body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size, 13px); color: var(--vscode-foreground); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+	body { font-family: var(--gg-font-sans); font-size: var(--vscode-font-size, 13px); color: var(--vscode-foreground); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 	#header { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.35)); flex-shrink: 0; }
 	#header .letter { font-weight: 600; color: ${statusColour}; width: 13px; text-align: center; flex-shrink: 0; }
-	#header .path { font-family: var(--vscode-editor-font-family, monospace); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	#header .refs { font-size: 11px; opacity: 0.75; margin-left: auto; flex-shrink: 0; font-family: var(--vscode-editor-font-family, monospace); }
+	#header .path { font-family: var(--gg-font-mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	#header .refs { font-size: 11px; opacity: 0.75; margin-left: auto; flex-shrink: 0; font-family: var(--gg-font-mono); }
 	#diffArea { flex: 1; min-height: 0; }
 	.status { padding: 16px; opacity: 0.8; }
 	${binaryCompareCss()}

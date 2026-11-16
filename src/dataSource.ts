@@ -1564,7 +1564,8 @@ export class DataSource extends Disposable {
 	 * @param squash Is `--squash` enabled if a merge is required.
 	 * @returns The ErrorInfo from the executed command.
 	 */
-	public pullBranch(repo: string, branchName: string, remote: string, createNewCommit: boolean, squash: boolean) {
+	public pullBranch(repo: string, branchName: string, remote: string, createNewCommit: boolean, squash: boolean, method?: 'ff' | 'ff-only' | 'rebase', expectedBranch?: string) {
+		if (method !== undefined) return this.pullBranchExplicit(repo, branchName, remote, createNewCommit, squash, method, expectedBranch);
 		const unsafeArgs = DataSource.checkUnsafeGitArgs(['branchName', branchName, 'ref'], ['remote', remote, 'ref']);
 		if (unsafeArgs !== null) return Promise.resolve(unsafeArgs);
 
@@ -1582,6 +1583,31 @@ export class DataSource extends Disposable {
 				? this.commitSquashIfStagedChangesExist(repo, remote + '/' + branchName, MergeActionOn.Branch, config.squashPullMessageFormat, config.signCommits)
 				: pullStatus;
 		});
+	}
+
+	private async pullBranchExplicit(repo: string, branchName: string, remote: string, createNewCommit: boolean, squash: boolean, method: 'ff' | 'ff-only' | 'rebase', expectedBranch?: string): Promise<ErrorInfo> {
+		if (method !== 'ff' && method !== 'ff-only' && method !== 'rebase') return t('pullInvalidMethod');
+		if (typeof branchName !== 'string' || typeof remote !== 'string' || typeof createNewCommit !== 'boolean' || typeof squash !== 'boolean' || (expectedBranch !== undefined && typeof expectedBranch !== 'string')) return t('pullInvalidArguments');
+		if (createNewCommit || squash) return t('pullIncompatibleOptions');
+		if ((branchName === '') !== (remote === '')) return t('pullSourceRequired');
+		const unsafeArgs = DataSource.checkUnsafeGitArgs(['branchName', branchName || null, 'ref'], ['remote', remote || null, 'ref'], ['expectedBranch', expectedBranch, 'ref']);
+		if (unsafeArgs !== null) return unsafeArgs;
+		const currentBranch = await this.gitOutput(['symbolic-ref', '--quiet', '--short', 'HEAD'], repo, (out) => out.trim()).catch(() => '');
+		if (!currentBranch) return t('pullDetachedHead');
+		if (expectedBranch !== undefined && currentBranch !== expectedBranch) return t('pullBranchChanged');
+		if ((await this.getOperationState(repo)).type !== null) return t('pullOperationActive');
+		if (!remote) {
+			const upstream = await this.gitOutput(['rev-parse', '--symbolic-full-name', '@{upstream}'], repo, (out) => out.trim()).catch(() => '');
+			if (!upstream) return t('pullMissingUpstream');
+		}
+		const args = ['-c', 'pull.rebase=' + (method === 'rebase'), '-c', 'pull.ff=' + (method === 'ff-only' ? 'only' : 'true'),
+			'-c', 'pull.autostash=false', '-c', 'rebase.autoStash=false', '-c', 'merge.autoStash=false',
+			'pull', method === 'rebase' ? '--rebase' : '--no-rebase'];
+		if (method !== 'rebase') args.push(method === 'ff-only' ? '--ff-only' : '--ff');
+		args.push('--no-autostash');
+		if (getConfig().signCommits) args.push('-S');
+		if (remote) args.push(remote, branchName);
+		return this.runGitCommand(args, repo);
 	}
 
 	/**
@@ -2311,6 +2337,26 @@ export class DataSource extends Disposable {
 	 * @param repo The path of the repository.
 	 * @returns The number of uncommitted changes.
 	 */
+	public getWorkingTreeSummary(repo: string): Promise<{ total: number, staged: number, modified: number, conflicts: number }> {
+		return this.spawnGit(['status', '--porcelain=v1', '-z', '--untracked-files=' + (getConfig().showUntrackedFiles ? 'all' : 'no')], repo, stdout => {
+			const result = { total: 0, staged: 0, modified: 0, conflicts: 0 };
+			const records = stdout.split('\0');
+			for (let i = 0; i < records.length; i++) {
+				const record = records[i];
+				if (record.length < 3) continue;
+				const status = record.slice(0, 2);
+				result.total++;
+				if (['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(status)) result.conflicts++;
+				else {
+					if (status[0] !== ' ' && status[0] !== '?') result.staged++;
+					if (status[1] !== ' ') result.modified++;
+				}
+				if (status.includes('R') || status.includes('C')) i++; // -z renames include a second path.
+			}
+			return result;
+		});
+	}
+
 	public getUncommittedChanges(repo: string) {
 		return this.backend.getUncommittedChangeCount(repo, getConfig().showUntrackedFiles);
 	}

@@ -50,7 +50,7 @@ function suiteTable(suite: SuiteReport['suites'][0]): string {
 }
 
 /** Render the report as a standalone interactive HTML document (also what "Save HTML" writes). */
-export function renderReportHtml(report: SuiteReport): string {
+export function renderReportHtml(report: SuiteReport, fontsUri: string | null = null, fontCspSource: string | null = null): string {
 	const t = report.totals;
 	const skippedNote = report.writeSuiteIncluded
 		? ''
@@ -62,12 +62,13 @@ export function renderReportHtml(report: SuiteReport): string {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-report';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${fontCspSource ?? "'none'"}; script-src 'nonce-report';">
+${fontsUri === null ? '' : `<link rel="stylesheet" href="${fontsUri}">`}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Git Graph Automation Report</title>
 <style>
 	:root { color-scheme: light dark; }
-	body { font-family: var(--vscode-font-family, system-ui, sans-serif); font-size: 13px; padding: 0 20px 30px; color: var(--vscode-foreground, #ddd); background: var(--vscode-editor-background, #1e1e1e); }
+	body { font-family: var(--gg-font-sans, var(--vscode-font-family, system-ui, sans-serif)); font-size: 13px; padding: 0 20px 30px; color: var(--vscode-foreground, #ddd); background: var(--vscode-editor-background, #1e1e1e); }
 	h1 { font-size: 18px; margin: 18px 0 4px; }
 	h2 { font-size: 14px; margin: 22px 0 8px; }
 	.meta { color: var(--vscode-descriptionForeground, #999); margin-bottom: 14px; }
@@ -86,7 +87,7 @@ export function renderReportHtml(report: SuiteReport): string {
 	table { border-collapse: collapse; width: 100%; margin-top: 6px; }
 	th, td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--vscode-panel-border, #3c3c3c); vertical-align: top; }
 	th { color: var(--vscode-descriptionForeground, #999); font-weight: 500; }
-	td.id { font-family: var(--vscode-editor-font-family, monospace); font-size: 12px; white-space: nowrap; }
+	td.id { font-family: var(--gg-font-mono, var(--vscode-editor-font-family, monospace)); font-size: 12px; white-space: nowrap; }
 	td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 	td.detail { color: var(--vscode-descriptionForeground, #999); }
 	td.detail .notes { font-size: 12px; margin-top: 2px; opacity: .85; }
@@ -159,7 +160,8 @@ export function showAutomationReport(report: SuiteReport): void {
 		vscode.ViewColumn.Beside,
 		{ enableScripts: true, retainContextWhenHidden: true }
 	);
-	panel.webview.html = renderReportHtml(report);
+	const fontsUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(path.dirname(__filename), '..', '..', 'resources', 'fonts.css')));
+	panel.webview.html = renderReportHtml(report, fontsUri.toString(), panel.webview.cspSource);
 	panel.webview.onDidReceiveMessage((message: { command?: string; format?: 'html' | 'json' }) => {
 		if (message.command !== 'saveReport') return;
 		const stamp = report.finishedAt.replace(/[:.]/g, '-');

@@ -17,6 +17,7 @@ class GitGraphView {
 	 * number updated in place) across responses whose commit list doesn't carry the row.
 	 */
 	private uncommittedCount: number | null = null;
+	private workingTree: GG.ResponseLoadRepoInfo['workingTree'] = null;
 	private currentBranches: string[] | null = null;
 	private currentAuthors: string[] | null = null;
 
@@ -191,11 +192,30 @@ class GitGraphView {
 			this.pinnedControlsElem.addEventListener('click', (e) => this.onPinnedChipClick(<HTMLElement>e.target));
 		}
 		this.tableElem = document.getElementById('commitTable')!;
+		this.tableElem.addEventListener('click', event => {
+			const button = (event.target as Element).closest<HTMLElement>('[data-wip-action]');
+			if (button === null) return;
+			event.stopPropagation();
+			if (button.dataset.wipAction === 'conflicts') {
+				this.conflictBanner.toggle();
+				button.setAttribute('aria-expanded', String(this.conflictBanner.isExpanded));
+				this.renderGraph();
+			} else {
+				const commit = this.commits[this.commitLookup[UNCOMMITTED]];
+				if (commit !== undefined && commit.parents.length > 0) {
+					this.openCompareTab(UNCOMMITTED, commit.parents[0]);
+				}
+			}
+		}, true);
+		this.tableElem.addEventListener('click', event => {
+			if ((event.target as Element).closest('.refsOverflow > summary')) event.stopPropagation();
+		}, true);
 		this.footerElem = document.getElementById('footer')!;
 
 		viewElem.focus();
 
 		this.graph = new Graph('commitGraph', viewElem, this.config.graph, this.config.mute);
+		this.graph.setAvatarProvider(email => this.config.fetchAvatars ? this.avatars[email] ?? null : null);
 
 		this.repoDropdown = new Dropdown('repoDropdown', true, false, strings.dropdownRepos, (values) => {
 			this.loadRepo(values[0]);
@@ -939,6 +959,7 @@ class GitGraphView {
 		// current view.
 		if (this.currentRepoRefreshState.loadRepoInfoRefreshId !== msg.refreshId) return;
 		this.conflictBanner.update(msg.operationState);
+		this.workingTree = msg.workingTree ?? null;
 		if (msg.error === null) {
 			this.loadRepoInfo(msg.branches, msg.head, msg.remotes, msg.stashes, msg.isRepo, msg.remoteRefsPending === true);
 			this.requestPullRequests();
@@ -1065,6 +1086,7 @@ class GitGraphView {
 
 	public loadAvatar(email: string, image: string) {
 		this.avatars[email] = image;
+		this.graph.loadAvatar(email, image);
 		this.saveState();
 		// Scope the update to the rows of this author (attribute selector) instead of scanning
 		// every avatar element of the (potentially very large) table
@@ -1602,6 +1624,9 @@ class GitGraphView {
 		}
 
 		const colHeadersElem = document.getElementById('tableColHeaders');
+		const graphHeader = document.getElementById('tableHeaderGraphCol');
+		const graphElem = document.getElementById('commitGraph');
+		if (graphHeader !== null && graphElem !== null) graphElem.style.left = graphHeader.offsetLeft + 'px';
 		const cdvHeight = this.gitRepos[this.currentRepo].cdvHeight;
 		// (+1 for its bottom border; the mobile layout hides the header row, which then adds nothing)
 		const headerHeight = colHeadersElem !== null && colHeadersElem.clientHeight > 0 ? colHeadersElem.clientHeight + 1 : 0;
@@ -1672,7 +1697,6 @@ class GitGraphView {
 			colVisibility: this.getColumnVisibility(),
 			currentHash: currentHash,
 			vertexColours: this.graph.getVertexColours(),
-			widthsAtVertices: this.config.referenceLabels.branchLabelsAlignedToGraph ? this.graph.getWidthsAtVertices() : [],
 			mutedCommits: this.graph.getMutedCommits(currentHash),
 			pinnedCommitHashes: new Set(this.getPinnedCommits().map((pinned) => pinned.hash)),
 			// The Gerrit badges displayable under the fetch limit: computed once per render, so the
@@ -1687,11 +1711,13 @@ class GitGraphView {
 	}
 
 	private getCommitRowHtml(i: number, ctx: ReturnType<GitGraphView['createRowRenderingContext']>) {
+		const order = this.renderedNarrowWindow ? [0, 1] : [0, 1, ...(ctx.colVisibility.author ? [3] : []), ...(ctx.colVisibility.commit ? [4] : []), ...(ctx.colVisibility.date ? [2] : [])];
 		function getResizeColHtml(col: number) {
-			return (col > 0 ? '<span class="resizeCol left" data-col="' + (col - 1) + '"></span>' : '') + (col < 4 ? '<span class="resizeCol right" data-col="' + col + '"></span>' : '');
+			const pos = order.indexOf(col);
+			return (pos > 0 ? '<span class="resizeCol left" data-col="' + order[pos - 1] + '"></span>' : '') + (pos < order.length - 1 ? '<span class="resizeCol right" data-col="' + col + '"></span>' : '');
 		}
 
-		const colVisibility = ctx.colVisibility, currentHash = ctx.currentHash, vertexColours = ctx.vertexColours, widthsAtVertices = ctx.widthsAtVertices, mutedCommits = ctx.mutedCommits, pinnedCommitHashes = ctx.pinnedCommitHashes, textFormatter = ctx.textFormatter;
+		const colVisibility = ctx.colVisibility, currentHash = ctx.currentHash, vertexColours = ctx.vertexColours, mutedCommits = ctx.mutedCommits, pinnedCommitHashes = ctx.pinnedCommitHashes, textFormatter = ctx.textFormatter;
 
 		let commit = this.commits[i];
 		let subject = commit.message.split(/\r?\n/)[0];
@@ -1715,17 +1741,17 @@ class GitGraphView {
 			message += ' <span class="commitbody">' + this.formatText(textFormatter, body) + '</span>';
 		}
 		message += '</span>';
-		let date = formatShortDate(commit.date);
+		let date = formatShortDate(commit.date, true);
 		let branchLabels = getBranchLabels(commit.heads, commit.remotes);
 		let refBranches = '', refTags = '', j, k, refName, remoteName, refActive, refHtml, branchCheckedOutAtCommit: string | null = null;
 
 		for (j = 0; j < branchLabels.heads.length; j++) {
 			refName = escapeHtml(branchLabels.heads[j].name);
 			refActive = branchLabels.heads[j].name === this.gitBranchHead;
-			refHtml = '<span class="gitRef head' + (refActive ? ' active' : '') + '" data-name="' + refName + '">' + SVG_ICONS.branch + '<span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span>';
+			refHtml = '<span class="gitRef head' + (refActive ? ' active' : '') + '" data-name="' + refName + '">' + (refActive ? SVG_ICONS.check : SVG_ICONS.monitor) + '<span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span>';
 			for (k = 0; k < branchLabels.heads[j].remotes.length; k++) {
 				remoteName = escapeHtml(branchLabels.heads[j].remotes[k]);
-				refHtml += '<span class="gitRefHeadRemote" data-remote="' + remoteName + '" data-fullref="' + escapeHtml(branchLabels.heads[j].remotes[k] + '/' + branchLabels.heads[j].name) + '">' + remoteName + '</span>';
+				refHtml += '<span class="gitRefHeadRemote" data-remote="' + remoteName + '" data-fullref="' + escapeHtml(branchLabels.heads[j].remotes[k] + '/' + branchLabels.heads[j].name) + '">' + SVG_ICONS.cloud + remoteName + '</span>';
 			}
 			refHtml += '</span>';
 			refBranches = refActive ? refHtml + refBranches : refBranches + refHtml;
@@ -1733,7 +1759,7 @@ class GitGraphView {
 		}
 		for (j = 0; j < branchLabels.remotes.length; j++) {
 			refName = escapeHtml(branchLabels.remotes[j].name);
-			refBranches += '<span class="gitRef remote" data-name="' + refName + '" data-remote="' + (branchLabels.remotes[j].remote !== null ? escapeHtml(branchLabels.remotes[j].remote!) : '') + '">' + SVG_ICONS.branch + '<span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span></span>';
+			refBranches += '<span class="gitRef remote" data-name="' + refName + '" data-remote="' + (branchLabels.remotes[j].remote !== null ? escapeHtml(branchLabels.remotes[j].remote!) : '') + '">' + SVG_ICONS.cloud + '<span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span></span>';
 		}
 
 		let tagMap: { [name: string]: { name: string, remotes: string[], annotated: boolean, local: boolean } } = {};
@@ -1787,23 +1813,32 @@ class GitGraphView {
 			? '<span class="openChangesBtn" title="' + escapeHtml(formatStr(strings.openChangesTitleWithSubject, openChangesSubject)) + '">' + SVG_ICONS.openChanges + '</span>'
 			: '';
 		const rowOpenHtml = '<tr class="commit' + (commit.hash === currentHash ? ' current' : '') + (mutedCommits[i] ? ' mute' : '') + '"' + (commit.hash !== UNCOMMITTED ? '' : ' id="uncommittedChanges"') + ' data-id="' + i + '" data-hash="' + commit.hash + '" data-color="' + vertexColours[i] + '">';
+		if (commit.hash === UNCOMMITTED && !this.renderedNarrowWindow) {
+			return rowOpenHtml + '<td class="graphCol">' + getResizeColHtml(0) + '</td><td class="messageCol wipCell" colspan="' + (this.getNumColumns() - 1) + '">' + this.getWipRowHtml(commit.message) + '</td></tr>';
+		}
 		if (this.renderedNarrowWindow) {
 			// The mobile layout drops the Date, Author and Commit columns. Its two-line row reads
 			// like a mail list: the subject with a compact date on the right, then the refs, the
 			// author and the abbreviated hash. Refs moved off the first line keep the subject
 			// readable on a phone; the full date stays in the date's tooltip.
 			const refs = refBranches + refTags + refGerrit + refPullRequest;
-			return rowOpenHtml + '<td>' + getResizeColHtml(0) + '</td><td>' + getResizeColHtml(1) +
+			return rowOpenHtml + '<td class="graphCol">' + getResizeColHtml(0) + '</td><td class="messageCol">' + getResizeColHtml(1) +
 				'<span class="description">' + commitDot + pinnedBadge + message + '<span class="mobileMetaDate" title="' + date.title + '">' + formatCompactDate(commit.date) + '</span></span>' +
-				'<span class="mobileMeta">' + (refs !== '' ? '<span class="mobileRefs">' + refs + '</span>' : '') +
+				'<span class="mobileMeta"><span class="wipMobileConflict">' + (commit.hash === UNCOMMITTED ? this.getConflictButtonHtml() : '') + '</span>' + (refs !== '' ? '<span class="mobileRefs">' + refs + '</span>' : '') +
 				(commit.hash !== UNCOMMITTED ? '<span class="mobileMetaAuthor">' + escapeHtml(commit.author) + '</span><span class="mobileMetaHash">' + abbrevCommit(commit.hash) + '</span>' : '') +
 				'</span></td></tr>';
 		}
+		const refsContainer = document.createElement('div');
+		refsContainer.innerHTML = refBranches + refTags;
+		const refs = Array.from(refsContainer.children);
+		const refsHtml = refs.length <= 3 ? refBranches + refTags : refs.slice(0, 3).map(ref => ref.outerHTML).join('')
+			+ '<details class="refsOverflow"><summary aria-label="' + escapeHtml(strings.columnRefs) + '">+' + (refs.length - 3) + '</summary><span class="refsMore">'
+			+ refs.slice(3).map(ref => ref.outerHTML).join('') + '</span></details>';
 		let html = rowOpenHtml +
-			(this.config.referenceLabels.branchLabelsAlignedToGraph ? '<td>' + getResizeColHtml(0) + (refBranches !== '' ? '<span style="margin-left:' + (widthsAtVertices[i] - 4) + 'px"' + refBranches.substring(5) : '') + '</td><td>' + getResizeColHtml(1) + '<span class="description">' + commitDot + pinnedBadge : '<td>' + getResizeColHtml(0) + '</td><td>' + getResizeColHtml(1) + '<span class="description">' + commitDot + pinnedBadge + refBranches) + (this.config.referenceLabels.tagLabelsOnRight ? refGerrit + refPullRequest + message + openChangesBtn + (refTags !== '' ? '<span class="tagsWrapper">' + refTags + '</span>' : '') : refTags + refGerrit + refPullRequest + message + openChangesBtn) + '</span></td>' +
+			'<td class="graphCol">' + getResizeColHtml(0) + '</td><td class="messageCol">' + getResizeColHtml(1) + '<span class="description">' + commitDot + pinnedBadge + '<span class="refsGroup">' + refsHtml + '</span>' + refGerrit + refPullRequest + message + openChangesBtn + '</span></td>' +
+			(colVisibility.author ? '<td class="authorCol text" title="' + escapeHtml(commit.author + ' <' + commit.email + '>') + '">' + getResizeColHtml(3) + escapeHtml(commit.author) + '</td>' : '') +
+			(colVisibility.commit ? '<td class="hashCol text" title="' + escapeHtml(commit.hash) + '">' + getResizeColHtml(4) + abbrevCommit(commit.hash) + '</td>' : '') +
 			(colVisibility.date ? '<td class="dateCol text" title="' + date.title + '">' + getResizeColHtml(2) + date.formatted + '</td>' : '') +
-			(colVisibility.author ? '<td class="authorCol text" title="' + escapeHtml(commit.author + ' <' + commit.email + '>') + '">' + getResizeColHtml(3) + (this.config.fetchAvatars ? '<span class="avatar" data-email="' + escapeHtml(commit.email) + '">' + (typeof this.avatars[commit.email] === 'string' ? '<img class="avatarImg" decoding="sync" src="' + this.avatars[commit.email] + '">' : '') + '</span>' : '') + escapeHtml(commit.author) + '</td>' : '') +
-			(colVisibility.commit ? '<td class="text" title="' + escapeHtml(commit.hash) + '">' + getResizeColHtml(4) + abbrevCommit(commit.hash) + '</td>' : '') +
 			'</tr>';
 
 		return html;
@@ -2136,25 +2171,15 @@ class GitGraphView {
 		}
 		const range = this.computeVisibleRange();
 		if (range.start === this.renderedRange.start && range.end === this.renderedRange.end) return;
+		const scrollTop = this.viewElem.scrollTop;
 		this.renderTable();
 		this.renderGraph();
-		if (this.getScrollLeadRows() > 0) this.scheduleLeadRetighten();
-	}
-
-	/** The pending one-shot timer that shrinks the window back once the scroll motion rests. */
-	private leadRetightenTimer: number | null = null;
-
-	/**
-	 * A lead-extended window must not stay extended forever: once the scrolling rests and the
-	 * velocity lead has decayed, re-render the tight window so ordinary updates stay cheap. Each
-	 * lead render re-arms this, so the shrink only ever runs after the motion truly ended.
-	 */
-	private scheduleLeadRetighten() {
-		if (this.leadRetightenTimer !== null) window.clearTimeout(this.leadRetightenTimer);
-		this.leadRetightenTimer = window.setTimeout(() => {
-			this.leadRetightenTimer = null;
-			if (this.renderedRange !== null && this.getScrollLeadRows() === 0) this.updateVirtualWindow();
-		}, GitGraphView.VIRTUAL_LEAD_DECAY_MS + 60);
+		// Replacing virtual rows can transiently shorten a native scrollbar's track while
+		// its thumb is being dragged. Commit layout before restoring the user's position.
+		void this.viewElem.scrollHeight;
+		if (this.viewElem.scrollTop !== scrollTop) this.viewElem.scrollTop = scrollTop;
+		// Keep the buffered rows until the next user scroll instead of changing native
+		// scrollbar geometry again just after the thumb is released.
 	}
 
 	/**
@@ -2184,10 +2209,10 @@ class GitGraphView {
 		const ctx = this.createRowRenderingContext();
 		const colVisibility = ctx.colVisibility;
 
-		const headerHtml = '<tr id="tableColHeaders"><th id="tableHeaderGraphCol" class="tableColHeader" data-col="0">' + strings.columnGraph + '</th><th class="tableColHeader" data-col="1">' + strings.columnDescription + '</th>' +
-			(colVisibility.date ? '<th class="tableColHeader dateCol" data-col="2">' + strings.columnDate + '</th>' : '') +
+		const headerHtml = '<tr id="tableColHeaders"><th id="tableHeaderGraphCol" class="tableColHeader graphCol" data-col="0">' + strings.columnGraph + '</th><th class="tableColHeader messageCol" data-col="1">' + strings.columnDescription + '</th>' +
 			(colVisibility.author ? '<th class="tableColHeader authorCol" data-col="3">' + strings.columnAuthor + '</th>' : '') +
-			(colVisibility.commit ? '<th class="tableColHeader commitCol" data-col="4">' + strings.columnCommit + '</th>' : '') +
+			(colVisibility.commit ? '<th class="tableColHeader commitCol hashCol" data-col="4">' + strings.columnCommit + '</th>' : '') +
+			(colVisibility.date ? '<th class="tableColHeader dateCol" data-col="2">' + strings.columnDate + '</th>' : '') +
 			'</tr>';
 
 		// A full re-render can shrink the commit list (e.g. applying a path filter). A stale scroll
@@ -2216,7 +2241,7 @@ class GitGraphView {
 		// comparing its HTML, which the column-resizing code decorates with inline widths, so it
 		// would never match what is generated here and the header (and the widths on it) would be
 		// thrown away on every single refresh.
-		const headerKey = String(colVisibility.date) + String(colVisibility.author) + String(colVisibility.commit);
+		const headerKey = String(this.renderedNarrowWindow) + String(colVisibility.date) + String(colVisibility.author) + String(colVisibility.commit);
 		const headerElem = tableBody.querySelector('#tableColHeaders');
 		if (headerElem === null) {
 			tableBody.insertAdjacentHTML('afterbegin', headerHtml);
@@ -2394,10 +2419,32 @@ class GitGraphView {
 
 
 
+	private getConflictButtonHtml() {
+		const conflicts = this.workingTree?.conflicts ?? this.conflictBanner.conflicts;
+		return conflicts > 0 || this.conflictBanner.hasOperation
+			? '<button type="button" class="wipBadge wipConflicts" data-wip-action="conflicts" aria-controls="conflictBanner" aria-expanded="' + this.conflictBanner.isExpanded + '">' + (conflicts > 0 ? formatStr(strings.wipConflicts, String(conflicts)) : strings.wipOperation) + '</button>' : '';
+	}
+
+	private getWipRowHtml(message: string) {
+		const counts = this.workingTree;
+		const conflictButton = this.getConflictButtonHtml();
+		return '<span class="wipRow"><span class="wipIcon">' + SVG_ICONS.pencil + '</span><span class="wipLabel">WIP</span><span class="text">' + escapeHtml(counts != null ? formatStr(strings.wipChanges, String(counts.total)) : message) + '</span><span class="wipActions">' + conflictButton
+			+ (counts !== null && counts !== undefined ? '<button type="button" class="wipBadge wipStaged" data-wip-action="changes">' + formatStr(strings.wipStaged, String(counts.staged)) + '</button><button type="button" class="wipBadge wipModified" data-wip-action="changes">' + formatStr(strings.wipModified, String(counts.modified)) + '</button>' : '')
+			+ '<button type="button" class="wipViewChanges" data-wip-action="changes">' + strings.wipViewChanges + '</button></span></span>';
+	}
+
 	private renderUncommittedChanges() {
 		const uncommittedElem = document.getElementById('uncommittedChanges');
 		if (uncommittedElem === null) return; // not rendered (e.g. outside the windowed render range)
-		const date = formatShortDate(this.commits[0].date);
+		if (!this.renderedNarrowWindow) {
+			const cell = uncommittedElem.querySelector('.wipCell');
+			const html = this.getWipRowHtml(this.commits[0].message);
+			if (cell !== null && cell.innerHTML !== html) cell.innerHTML = html;
+			return;
+		}
+		const mobileConflict = uncommittedElem.querySelector('.wipMobileConflict');
+		if (mobileConflict !== null) mobileConflict.innerHTML = this.getConflictButtonHtml();
+		const date = formatShortDate(this.commits[0].date, true);
 		// Patch the rendered cells in place: the row was built by the table's row builder, so only
 		// the two things a working-tree status can change are touched - the count in the message
 		// and the date. A background refresh with an identical status leaves the row's DOM
@@ -2798,6 +2845,7 @@ class GitGraphView {
 	 */
 	public getHeaderHeight() {
 		return this.controlsElem.clientHeight
+			+ (document.getElementById('conflictBanner')?.clientHeight ?? 0)
 			+ (this.pinnedControlsElem !== null && this.pinnedControlsElem.style.display !== 'none' ? this.pinnedControlsElem.clientHeight : 0);
 	}
 

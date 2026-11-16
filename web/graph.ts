@@ -314,12 +314,48 @@ class Vertex {
 
 	/* Rendering */
 
-	public draw(svg: SVGElement, config: GG.GraphConfig, offset: number) {
+	public draw(svg: SVGElement, config: GG.GraphConfig, offset: number, commit: GG.GitCommit, avatar: string | null) {
 		if (this.onBranch === null) return;
 
 		const colour = this.isCommitted ? config.colours[this.onBranch.getColour() % config.colours.length] : '#808080';
 		const cx = (this.x * config.grid.x + config.grid.offsetX).toString();
 		const cy = (this.id * config.grid.y + config.grid.offsetY + offset).toString();
+		if (this.isCommitted && !this.isStash) {
+			const x = Number(cx), y = Number(cy);
+			const normalized = commit.email.trim().toLowerCase();
+			let hash = 0;
+			for (let i = 0; i < normalized.length; i++) hash = (Math.imul(hash, 31) + normalized.charCodeAt(i)) | 0;
+			const background = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'circle'));
+			background.setAttribute('cx', cx); background.setAttribute('cy', cy); background.setAttribute('r', '9');
+			background.setAttribute('fill', 'hsl(' + ((hash >>> 0) % 360) + ', 45%, 45%)');
+			background.style.pointerEvents = 'none'; background.style.stroke = 'none';
+			const text = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'text'));
+			text.setAttribute('x', cx); text.setAttribute('y', cy);
+			text.setAttribute('text-anchor', 'middle'); text.setAttribute('dominant-baseline', 'central');
+			text.setAttribute('fill', 'white'); text.setAttribute('font-size', '8'); text.setAttribute('font-weight', '600');
+			text.style.pointerEvents = 'none';
+			text.textContent = commit.author.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => Array.from(part)[0]).join('').toUpperCase() || '?';
+			const clip = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'clipPath'));
+			clip.setAttribute('id', 'graph-avatar-clip-' + this.id);
+			const clipCircle = clip.appendChild(document.createElementNS(SVG_NAMESPACE, 'circle'));
+			clipCircle.setAttribute('cx', cx); clipCircle.setAttribute('cy', cy); clipCircle.setAttribute('r', '9');
+			const image = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'image'));
+			image.dataset.email = commit.email;
+			image.style.pointerEvents = 'none';
+			image.setAttribute('x', String(x - 9)); image.setAttribute('y', String(y - 9));
+			image.setAttribute('width', '18'); image.setAttribute('height', '18');
+			image.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+			image.setAttribute('clip-path', 'url(#graph-avatar-clip-' + this.id + ')');
+			image.addEventListener('error', () => image.removeAttribute('href'));
+			if (avatar !== null) image.setAttribute('href', avatar);
+			const ring = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'circle'));
+			ring.dataset.id = this.id.toString();
+			ring.setAttribute('cx', cx); ring.setAttribute('cy', cy); ring.setAttribute('r', '9');
+			ring.setAttribute('fill', 'transparent'); ring.setAttribute('stroke', colour); ring.setAttribute('stroke-width', '2');
+			ring.style.stroke = colour; ring.style.strokeWidth = '2px'; ring.style.strokeOpacity = '1'; ring.style.transform = 'none';
+			ring.classList.add('graphAvatarRing');
+			return;
+		}
 
 		const circle = document.createElementNS(SVG_NAMESPACE, 'circle');
 		circle.dataset.id = this.id.toString();
@@ -351,6 +387,7 @@ class Vertex {
 /* Graph Class */
 
 class Graph {
+	private avatarProvider: (email: string) => string | null = () => null;
 	private config: GG.GraphConfig;
 	private muteConfig: GG.MuteCommitsConfig;
 	private vertices: Vertex[] = [];
@@ -415,6 +452,17 @@ class Graph {
 	public setConfig(config: GG.GraphConfig, muteConfig: GG.MuteCommitsConfig) {
 		this.config = config;
 		this.muteConfig = muteConfig;
+	}
+
+	public setAvatarProvider(provider: (email: string) => string | null) {
+		this.avatarProvider = provider;
+	}
+
+	public loadAvatar(email: string, image: string) {
+		if (this.group === null || this.avatarProvider(email) === null) return;
+		this.group.querySelectorAll<SVGImageElement>('image[data-email]').forEach(element => {
+			if (element.dataset.email === email) element.setAttribute('href', image);
+		});
 	}
 
 	public loadCommits(commits: ReadonlyArray<GG.GitCommit>, commitHead: string | null, commitLookup: { [hash: string]: number }, onlyFollowFirstParent: boolean) {
@@ -505,7 +553,7 @@ class Graph {
 			// Windowed rendering: only the vertices of the rendered commit rows are drawn (the
 			// branch paths above always span the whole graph - there are only a few of them)
 			if (visibleRange !== null && (i < visibleRange.start || i >= visibleRange.end)) continue;
-			this.vertices[i].draw(group, this.config, expansionOffset);
+			this.vertices[i].draw(group, this.config, expansionOffset, this.commits[i], this.avatarProvider(this.commits[i].email));
 		}
 
 		// A single pair of delegated listeners on `group` (recreated together with every vertex on
@@ -885,7 +933,8 @@ class Graph {
 		if (id < this.commits.length && this.commits[id].hash !== UNCOMMITTED) { // Only show tooltip for commits (not the uncommitted changes)
 			this.tooltipTimeout = setTimeout(() => {
 				this.tooltipTimeout = null;
-				let vertexScreenY = vertexElem.getBoundingClientRect().top + 4; // Get center of the circle
+				const rect = vertexElem.getBoundingClientRect();
+				let vertexScreenY = rect.top + rect.height / 2;
 				if (vertexScreenY >= 5 && vertexScreenY <= this.viewElem.clientHeight - 5) {
 					// Vertex is completely visible on the screen (not partially off)
 					this.tooltipVertex = vertexElem;
@@ -902,7 +951,7 @@ class Graph {
 	}
 
 	private showTooltip(id: number, vertexScreenY: number) {
-		if (this.tooltipVertex !== null) {
+		if (this.tooltipVertex !== null && !this.tooltipVertex.classList.contains('graphAvatarRing')) {
 			this.tooltipVertex.setAttribute('r', this.tooltipVertex.classList.contains('stashOuter') ? '5.5' : '5');
 		}
 
@@ -947,7 +996,7 @@ class Graph {
 		const point = this.vertices[id].getPoint(), color = 'var(--git-graph-color' + (this.vertices[id].getColour() % this.config.colours.length) + ')';
 		const anchor = document.createElement('div'), pointer = document.createElement('div'), content = document.createElement('div'), shadow = document.createElement('div');
 		const pixel: Pixel = {
-			x: point.x * this.config.grid.x + this.config.grid.offsetX,
+			x: point.x * this.config.grid.x + this.config.grid.offsetX + this.svg.getBoundingClientRect().left - this.contentElem.getBoundingClientRect().left,
 			y: point.y * this.config.grid.y + this.config.grid.offsetY + this.getOffsetAt(id)
 		};
 
@@ -1003,7 +1052,7 @@ class Graph {
 		}
 
 		if (this.tooltipVertex !== null) {
-			this.tooltipVertex.setAttribute('r', this.tooltipVertex.classList.contains('stashOuter') ? '4.5' : '4');
+			if (!this.tooltipVertex.classList.contains('graphAvatarRing')) this.tooltipVertex.setAttribute('r', this.tooltipVertex.classList.contains('stashOuter') ? '4.5' : '4');
 			this.tooltipVertex = null;
 		}
 	}

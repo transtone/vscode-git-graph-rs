@@ -72,7 +72,7 @@ export function setAfterDeliver(fn) { afterDeliver = fn; }
 
 function disposable() { return { dispose: () => {} }; }
 class FakeConfiguration {
-	get(_key, defaultValue) { return defaultValue; }
+	get(key, defaultValue) { return key === 'graph.rowHeight' ? ROW_HEIGHT : defaultValue; }
 	has() { return false; }
 	update() { return Promise.resolve(); }
 }

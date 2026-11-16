@@ -1,3 +1,4 @@
+import { COMPARISON_ICONS } from './utils/icons';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { BinaryComparePost, binaryCompareCss, binaryCompareScript, createHexSession, respondCopyToClipboard, respondHexInfo, respondImageData, respondHexRows, wireHexSession } from './binaryCompare';
@@ -48,7 +49,7 @@ export class CommitComparisonView extends Disposable {
 			? t('commitPanelTitle', abbrevCommit(this.toHash))
 			: t('comparePanelTitle', abbrevCommit(fromHash), toHash === '' ? t('comparePresentLabel') : abbrevCommit(toHash)), vscode.ViewColumn.Active, {
 			enableScripts: true,
-			localResourceRoots: [vscode.Uri.file(path.join(extensionPath, 'media'))]
+			localResourceRoots: [vscode.Uri.file(path.join(extensionPath, 'media')), vscode.Uri.file(path.join(extensionPath, 'resources'))]
 		});
 
 		CommitComparisonView.openViews.set(key, this);
@@ -89,7 +90,7 @@ export class CommitComparisonView extends Disposable {
 					// standalone Binary Compare tab shows the full hex / picture comparison.
 					const file = this.fileChanges[msg.index];
 					if (file !== undefined) {
-						BinaryCompareView.open(this.dataSource, this.repo, this.fromHash, this.toHash, file);
+						BinaryCompareView.open(this.extensionPath, this.dataSource, this.repo, this.fromHash, this.toHash, file);
 					}
 				} else if (msg.command === 'getHexInfo') {
 					const session = this.hexSession(msg.index);
@@ -195,7 +196,7 @@ export class CommitComparisonView extends Disposable {
 	private commitCardHtml(hash: string, summaries: { [hash: string]: { hash: string, author: string, email: string, date: number, message: string } }, role: 'base' | 'compare' | 'single') {
 		const roleAttr = role === 'single' ? '' : ' data-role="' + role + '"';
 		if (hash === '' || hash === UNCOMMITTED) {
-			return '<div class="commitCard hasMessage"' + roleAttr + '><div class="firstLine"><span class="chip">' + t('comparePresentLabel') + '</span><span class="author">' + t('compareUncommittedLabel') + '</span><span class="toggle">&#9656;</span></div><p class="message">' + t('compareWorkingTreeLabel') + '</p></div>';
+			return '<div class="commitCard hasMessage"' + roleAttr + '><div class="firstLine"><span class="chip">' + t('comparePresentLabel') + '</span><span class="author">' + t('compareUncommittedLabel') + '</span><span class="toggle">' + COMPARISON_ICONS.chevronRight + '</span></div><p class="message">' + t('compareWorkingTreeLabel') + '</p></div>';
 		}
 		const summary = summaries[hash];
 		if (summary === undefined) {
@@ -208,7 +209,7 @@ export class CommitComparisonView extends Disposable {
 			'<span class="author">' + escapeHtml(summary.author) + '</span>' +
 			(role === 'single' ? '<span class="subject" title="' + escapeHtml(subject) + '">' + escapeHtml(subject) + '</span>' : '') +
 			'<span class="date">' + escapeHtml(new Date(summary.date * 1000).toLocaleString()) + '</span>' +
-			'<span class="toggle">&#9656;</span>' +
+			'<span class="toggle">' + COMPARISON_ICONS.chevronRight + '</span>' +
 			'</div>' +
 			'<p class="message">' + escapeHtml(summary.message) + '</p>' +
 			'</div>';
@@ -221,6 +222,7 @@ export class CommitComparisonView extends Disposable {
 	 */
 	private getHtml(error: string | null, summaries: { [hash: string]: { hash: string, author: string, email: string, date: number, message: string } }, commitsBetween: number | null, loading: boolean) {
 		const nonce = getNonce();
+		const fontsUri = this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(this.extensionPath, 'resources', 'fonts.css')));
 		const hljsUri = this.panel.webview.asWebviewUri(vscode.Uri.file(path.join(this.extensionPath, 'media', 'vendor', 'highlight.min.js')));
 		const commitsBetweenHtml = commitsBetween === null ? '' : escapeHtml(commitsBetween === 1 ? t('compareCommitsBetweenOne') : t('compareCommitsBetween', commitsBetween));
 		// In the single-commit presentation only the commit itself is shown; otherwise the header
@@ -232,9 +234,10 @@ export class CommitComparisonView extends Disposable {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; img-src data:; script-src 'nonce-${nonce}';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource} 'unsafe-inline'; font-src ${this.panel.webview.cspSource}; img-src data:; script-src 'nonce-${nonce}';">
+<link rel="stylesheet" type="text/css" href="${fontsUri}">
 <style>
-	body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size, 13px); color: var(--vscode-foreground); margin: 0; padding: 0 2px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
+	body { font-family: var(--gg-font-sans); font-size: var(--vscode-font-size, 13px); color: var(--vscode-foreground); margin: 0; padding: 0 2px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; box-sizing: border-box; }
 	#header { padding: 2px 0px 2px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.35)); flex-shrink: 0; }
 	#commitCards { display: flex; align-items: stretch; gap: 0; margin-bottom: 0px; }
 	.commitCard { flex: 1; min-width: 0; background: var(--vscode-textBlockQuote-background, rgba(128,128,128,0.06)); border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, rgba(128,128,128,0.35))); border-radius: 4px; padding: 10px 10px; transition: background-color 0.1s ease; }
@@ -243,13 +246,14 @@ export class CommitComparisonView extends Disposable {
 	.commitCard .firstLine { display: flex; align-items: center; gap: 7px; }
 	.commitCard.hasMessage .firstLine { cursor: pointer; margin: -3px -6px; padding: 3px 6px; border-radius: 3px; }
 	.commitCard.hasMessage .firstLine:hover { background: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,0.1)); }
-	.commitCard .chip { font-family: var(--vscode-editor-font-family, monospace); font-size: 11px; line-height: 15px; background: var(--vscode-badge-background, rgba(128,128,128,0.2)); color: var(--vscode-foreground); border-radius: 10px; padding: 1px 7px; flex-shrink: 0; }
+	.commitCard .chip { font-family: var(--gg-font-mono); font-size: 11px; line-height: 15px; background: var(--vscode-badge-background, rgba(128,128,128,0.2)); color: var(--vscode-foreground); border-radius: 10px; padding: 1px 7px; flex-shrink: 0; }
 	.commitCard .author { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; }
 	/* The single-commit card's subject line: takes whatever width the window leaves between the
 	   fixed chip/author/date and truncates with an ellipsis, so it always fits. */
 	.commitCard .subject { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; min-width: 0; opacity: 0.9; }
 	.commitCard .date { font-size: 11px; opacity: 0.8; margin-left: auto; flex-shrink: 0; }
 	.commitCard .toggle { display: inline-block; font-size: 9px; opacity: 0.55; flex-shrink: 0; transition: transform 0.12s ease; }
+	.commitCard .toggle svg, .treeRow .arrow svg { width:16px; height:16px; vertical-align:middle; }
 	#commitCards.expanded .toggle { transform: rotate(90deg); }
 	.commitCard .message { margin: 6px 0 0 0; padding-top: 6px; border-top: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.2)); white-space: pre-wrap; word-break: break-word; font-size: 12px; max-height: 120px; overflow: auto; }
 	#commitCards:not(.expanded) .commitCard.hasMessage .message { display: none; margin: 0; padding: 0; border: none; }
@@ -279,7 +283,7 @@ export class CommitComparisonView extends Disposable {
 	#main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 	#fileHeader { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.35)); flex-shrink: 0; gap: 8px; }
 	#fileHeader:empty { display: none; }
-	#filePath { font-family: var(--vscode-editor-font-family, monospace); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+	#filePath { font-family: var(--gg-font-mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 	#fileHeader button {
 		/* VS Code secondary button, using the exact token pair VS Code's own .monaco-button.secondary
 		   uses: secondaryForeground rides on secondaryBackground (dark text on the light/white
@@ -305,7 +309,7 @@ export class CommitComparisonView extends Disposable {
 	#fileHeader button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
 	#diffArea { flex: 1; overflow: auto; }
 	.status { padding: 16px; opacity: 0.8; }
-		table.diff { border-collapse: collapse; width: 100%; table-layout: fixed; font-family: var(--vscode-editor-font-family, monospace); font-size: 12px; line-height: 19px; }
+		table.diff { border-collapse: collapse; width: 100%; table-layout: fixed; font-family: var(--gg-font-mono); font-size: 12px; line-height: 19px; }
 		table.diff td { padding: 0 8px; vertical-align: top; }
 		table.diff td.code { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-all; }
 		td.ln { width: 46px; text-align: right; color: var(--vscode-editorLineNumber-foreground, rgba(128,128,128,0.7)); user-select: none; border-right: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.25)); background: rgba(128,128,128,0.06); }
@@ -472,11 +476,11 @@ export class CommitComparisonView extends Disposable {
 			row.className = 'treeRow';
 			row.style.paddingLeft = (TREE_FOLDER_BASE + depth * TREE_INDENT) + 'px';
 			row.style.backgroundImage = treeGuidesBackground(depth);
-			row.innerHTML = '<span class="arrow">&#9662;</span><span class="name">' + escapeHtml(name) + '</span>';
+			row.innerHTML = '<span class="arrow">${COMPARISON_ICONS.chevronDown}</span><span class="name">' + escapeHtml(name) + '</span>';
 			const children = document.createElement('div');
 			row.addEventListener('click', () => {
 				children.style.display = children.style.display === 'none' ? '' : 'none';
-				row.querySelector('.arrow').textContent = children.style.display === 'none' ? '\\u25B8' : '\\u25BE';
+				row.querySelector('.arrow').innerHTML = children.style.display === 'none' ? ${JSON.stringify(COMPARISON_ICONS.chevronRight)} : ${JSON.stringify(COMPARISON_ICONS.chevronDown)};
 			});
 			container.appendChild(row);
 			renderTree(sub, children, depth + 1);

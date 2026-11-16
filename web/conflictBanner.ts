@@ -1,9 +1,9 @@
 /**
- * Implements the Git Graph View's Conflict Banner: shown whenever a merge, rebase, cherry-pick
+ * Implements the Git Graph View's Conflict Banner: opened by the WIP conflict button while a merge, rebase, cherry-pick
  * or revert is left in progress in the repository (most commonly because it hit a conflict),
  * offering Continue / Abort actions and listing the files still needing resolution.
  *
- * The banner's visibility is driven entirely by `GG.GitOperationState`, which rides along every
+ * The banner's content is driven by `GG.GitOperationState`, which rides along every
  * `loadRepoInfo` response (see `GitGraphView.processLoadRepoInfoResponse`), so it reflects the
  * repository's real state on every view load, periodic refresh, and after every action.
  */
@@ -11,6 +11,15 @@ class ConflictBanner {
 	private readonly view: GitGraphView;
 	private readonly elem: HTMLElement;
 	private type: GG.GitOperationType | null = null;
+	private expanded = false;
+	private repo: string | null = null;
+	public conflicts = 0;
+	public get hasOperation() { return this.type !== null; }
+	public get isExpanded() { return this.expanded; }
+	public toggle() {
+		this.expanded = !this.expanded;
+		this.elem.style.display = this.expanded && this.type !== null ? 'flex' : 'none';
+	}
 
 	constructor(view: GitGraphView) {
 		this.view = view;
@@ -28,6 +37,9 @@ class ConflictBanner {
 		const type = state != null ? (state.type ?? null) : null;
 		const progress = state != null && state.progress != null ? state.progress : null;
 		const conflictedFiles = state != null && state.conflictedFiles != null ? state.conflictedFiles : [];
+		if (this.repo !== this.view.currentRepo || type !== this.type) this.expanded = false;
+		this.repo = this.view.currentRepo;
+		this.conflicts = conflictedFiles.length;
 		this.type = type;
 
 		if (type === null) {
@@ -48,7 +60,7 @@ class ConflictBanner {
 		html += '<div id="conflictBannerContinueBtn" class="roundedBtn" role="button" tabindex="0">' + escapeHtml(strings.conflictBannerContinue) + '</div>';
 		html += '<div id="conflictBannerAbortBtn" class="roundedBtn" role="button" tabindex="0">' + escapeHtml(strings.conflictBannerAbort) + '</div>';
 		this.elem.innerHTML = html;
-		this.elem.style.display = 'flex';
+		this.elem.style.display = this.expanded ? 'flex' : 'none';
 
 		const continueBtn = document.getElementById('conflictBannerContinueBtn')!;
 		const abortBtn = document.getElementById('conflictBannerAbortBtn')!;

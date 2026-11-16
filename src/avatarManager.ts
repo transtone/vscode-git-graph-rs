@@ -29,6 +29,7 @@ export class AvatarManager extends Disposable {
 
 	private avatars: AvatarCache;
 	private queue: AvatarRequestQueue;
+	private readonly requestedEmails = new Map<string, number>();
 	private remoteSourceCache: { [repo: string]: RemoteSource } = {};
 	private interval: NodeJS.Timeout | null = null;
 
@@ -88,6 +89,7 @@ export class AvatarManager extends Disposable {
 	 * @param commits The commits that reference the avatar.
 	 */
 	public fetchAvatarImage(email: string, repo: string, remote: string | null, commits: string[]) {
+		if (typeof this.avatars[email] !== 'undefined' && this.avatars[email].identicon) this.removeAvatarFromCache(email);
 		if (typeof this.avatars[email] !== 'undefined') {
 			// Avatar exists in the cache
 			let t = (new Date()).getTime();
@@ -102,7 +104,11 @@ export class AvatarManager extends Disposable {
 				this.queue.add(email, repo, remote, commits, true);
 			});
 		} else {
-			// Avatar not in the cache, request it
+			// Avoid retrying missing avatars on every background graph refresh.
+			const key = email.trim().toLowerCase();
+			const now = Date.now();
+			if (key === '' || now - (this.requestedEmails.get(key) ?? 0) < 300000) return;
+			this.requestedEmails.set(key, now);
 			this.queue.add(email, repo, remote, commits, true);
 		}
 	}
@@ -114,7 +120,7 @@ export class AvatarManager extends Disposable {
 	 */
 	public getAvatarImage(email: string) {
 		return new Promise<string | null>((resolve) => {
-			if (typeof this.avatars[email] !== 'undefined' && this.avatars[email].image !== null) {
+			if (typeof this.avatars[email] !== 'undefined' && !this.avatars[email].identicon && this.avatars[email].image !== null) {
 				fs.readFile(this.avatarStorageFolder + '/' + this.avatars[email].image, (err, data) => {
 					resolve(err ? null : 'data:image/' + this.avatars[email].image.split('.')[1] + ';base64,' + data.toString('base64'));
 				});
@@ -199,17 +205,24 @@ export class AvatarManager extends Disposable {
 	 */
 	public clearCache() {
 		this.avatars = {};
+		this.requestedEmails.clear();
 		return this.extensionState.clearAvatarCache();
 	}
 
 	/**
-	 * Triggered by an interval to fetch avatars from Github, GitLab and Gravatar.
+	 * Triggered by an interval to fetch avatars from Cravatar, GitHub and GitLab.
 	 */
 	private async fetchAvatarsInterval() {
 		if (this.queue.hasItems()) {
 			let avatarRequest = this.queue.takeItem();
 			if (avatarRequest === null) return; // No avatar can be checked at the current time
 
+			const hash = crypto.createHash('sha256').update(avatarRequest.email.trim().toLowerCase()).digest('hex');
+			const image = avatarRequest.email.trim() === '' ? null : await this.downloadAvatarImage(avatarRequest.email, 'https://www.cravatar.cn/avatar/' + hash + '?s=40&d=404');
+			if (image !== null) {
+				this.saveAvatar(avatarRequest.email, image, false);
+				return;
+			}
 			let remoteSource = await this.getRemoteSource(avatarRequest); // Fetch the remote source of the avatar
 			switch (remoteSource.type) {
 				case 'github':
@@ -219,7 +232,7 @@ export class AvatarManager extends Disposable {
 					this.fetchFromGitLab(avatarRequest);
 					break;
 				default:
-					this.fetchFromGravatar(avatarRequest);
+					break;
 			}
 		} else {
 			// Stop the interval if there are no items remaining in the queue
@@ -265,9 +278,6 @@ export class AvatarManager extends Disposable {
 	private fetchFromGithub(avatarRequest: AvatarRequestItem, owner: string, repo: string) {
 		let t = (new Date()).getTime();
 		if (t < this.githubTimeout) {
-			// Defer request until after timeout
-			this.queue.addItem(avatarRequest, this.githubTimeout, false);
-			this.fetchAvatarsInterval();
 			return;
 		}
 
@@ -280,10 +290,9 @@ export class AvatarManager extends Disposable {
 		let triggeredOnError = false;
 		const onError = () => {
 			if (!triggeredOnError) {
-				// If an error occurs, try again after 5 minutes
+				// Leave initials visible on network failure
 				triggeredOnError = true;
 				this.githubTimeout = t + 300000;
-				this.queue.addItem(avatarRequest, this.githubTimeout, false);
 			}
 		};
 
@@ -319,20 +328,18 @@ export class AvatarManager extends Disposable {
 						return;
 					}
 				} else if (res.statusCode === 403) {
-					// Rate limit reached, try again after timeout
-					this.queue.addItem(avatarRequest, this.githubTimeout, false);
+					// Rate limit reached; leave initials visible
 					return;
 				} else if (res.statusCode === 422 && avatarRequest.commits.length > avatarRequest.attempts + 1 && avatarRequest.attempts < 4) {
 					// Commit not found on remote, try again with the next commit if less than 5 attempts have been made
 					this.queue.addItem(avatarRequest, 0, true);
 					return;
 				} else if (res.statusCode! >= 500) {
-					// If server error, try again after 10 minutes
+					// Server error; leave initials visible
 					this.githubTimeout = t + 600000;
-					this.queue.addItem(avatarRequest, this.githubTimeout, false);
 					return;
 				}
-				this.fetchFromGravatar(avatarRequest); // Fallback to Gravatar
+				// No provider image; keep the initials.
 			});
 			res.on('error', onError);
 		}).on('error', onError)
@@ -350,9 +357,6 @@ export class AvatarManager extends Disposable {
 	private fetchFromGitLab(avatarRequest: AvatarRequestItem) {
 		let t = (new Date()).getTime();
 		if (t < this.gitLabTimeout) {
-			// Defer request until after timeout
-			this.queue.addItem(avatarRequest, this.gitLabTimeout, false);
-			this.fetchAvatarsInterval();
 			return;
 		}
 
@@ -361,10 +365,9 @@ export class AvatarManager extends Disposable {
 		let triggeredOnError = false;
 		const onError = () => {
 			if (!triggeredOnError) {
-				// If an error occurs, try again after 5 minutes
+				// Leave initials visible on network failure
 				triggeredOnError = true;
 				this.gitLabTimeout = t + 300000;
-				this.queue.addItem(avatarRequest, this.gitLabTimeout, false);
 			}
 		};
 
@@ -408,16 +411,14 @@ export class AvatarManager extends Disposable {
 						return;
 					}
 				} else if (res.statusCode === 429) {
-					// Rate limit reached, try again after timeout
-					this.queue.addItem(avatarRequest, this.gitLabTimeout, false);
+					// Rate limit reached; leave initials visible
 					return;
 				} else if (res.statusCode! >= 500) {
-					// If server error, try again after 10 minutes
+					// Server error; leave initials visible
 					this.gitLabTimeout = t + 600000;
-					this.queue.addItem(avatarRequest, this.gitLabTimeout, false);
 					return;
 				}
-				this.fetchFromGravatar(avatarRequest); // Fallback to Gravatar
+				// No provider image; keep the initials.
 			});
 			res.on('error', onError);
 		}).on('error', onError)
@@ -426,27 +427,6 @@ export class AvatarManager extends Disposable {
 			.on('timeout', function (this: http.ClientRequest) {
 				this.destroy(new Error('avatar request timed out'));
 			});
-	}
-
-	/**
-	 * Fetch an avatar from Gravatar.
-	 * @param avatarRequest The avatar request to fetch.
-	 */
-	private async fetchFromGravatar(avatarRequest: AvatarRequestItem) {
-		this.logger.log('Requesting Avatar for ' + maskEmail(avatarRequest.email) + ' from Gravatar');
-		const hash: string = crypto.createHash('md5').update(avatarRequest.email.trim().toLowerCase()).digest('hex');
-
-		let img = await this.downloadAvatarImage(avatarRequest.email, 'https://secure.gravatar.com/avatar/' + hash + '?s=162&d=404'), identicon = false;
-		if (img === null) {
-			img = await this.downloadAvatarImage(avatarRequest.email, 'https://secure.gravatar.com/avatar/' + hash + '?s=162&d=identicon');
-			identicon = true;
-		}
-
-		if (img !== null) {
-			this.saveAvatar(avatarRequest.email, img, identicon);
-		} else {
-			this.logger.log('No Avatar could be found for ' + maskEmail(avatarRequest.email));
-		}
 	}
 
 	/**

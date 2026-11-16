@@ -281,7 +281,7 @@ export async function bootView(total, options = {}) {
 	};
 	const respond = async (message) => {
 		if (message.command === 'loadRepoInfo') {
-			dispatch({ command: 'loadRepoInfo', refreshId: message.refreshId, branches: ['main'], head: state.branchHead, remotes: [], stashes: [], isRepo: true, error: null, operationState: { type: null, conflictedFiles: [], progress: null } });
+			dispatch({ command: 'loadRepoInfo', refreshId: message.refreshId, branches: state.branches ?? ['main'], head: state.branchHead, remotes: state.remotes ?? [], stashes: [], isRepo: true, error: null, operationState: state.operationState ?? { type: null, conflictedFiles: [], progress: null }, workingTree: state.workingTree ?? null });
 		} else if (message.command === 'loadCommits') {
 			/* One merged response. The extension's real multi-stage delivery (a first response
 			 * without the working-tree status, then the Uncommitted Changes row and its count in a

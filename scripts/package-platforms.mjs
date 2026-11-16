@@ -121,7 +121,7 @@ async function main() {
 	// renaming across volumes fails with EXDEV), then restore one at a time so each package
 	// carries exactly one. restore() skips platforms with no stashed copy, so it copes with an
 	// abort mid-stash: what was stashed goes back, what was not yet stashed never left.
-	const stash = fs.mkdtempSync(path.join(os.tmpdir(), 'git-graph-rs-platform-vsix-'));
+	const stash = fs.mkdtempSync(path.join(os.tmpdir(), 'ya-git-graph-platform-vsix-'));
 	let restored = false;
 	const restore = () => {
 		if (restored) return;
@@ -165,7 +165,7 @@ async function main() {
 				const target = VSCE_TARGET[platform];
 				const dest = path.join(nativeDir, platform, binaryName);
 				fs.copyFileSync(path.join(stash, `${platform}.node`), dest);
-				const outFile = `git-graph-rs-${version}-${platform}.vsix`;
+				const outFile = `ya-git-graph-${version}-${platform}.vsix`;
 				console.log(`  packaging ${outFile} (--target ${target})...`);
 				// --no-dependencies: node_modules/** is vscodeignored, so vsce's npm dependency
 				// detection is dead weight that fails packaging on an untidy npm tree.

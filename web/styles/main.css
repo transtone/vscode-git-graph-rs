@@ -562,7 +562,7 @@ table { border-collapse: collapse; }
 	padding:1px 4px;
 	border-radius:3px;
 	background-color:rgba(128,128,128,0.15);
-	font-family:var(--vscode-editor-font-family, monospace);
+	font-family:var(--gg-font-mono);
 	font-size:0.95em;
 }
 #cdvMessageBody pre code{
@@ -705,7 +705,7 @@ table { border-collapse: collapse; }
 	vertical-align:top;
 }
 .fileTreeFileIcon, .fileTreeFolderIcon, .fileTreeRepoIcon{
-	margin-right:8px;
+	margin-right:4px;
 }
 #cdvLastFileViewed{
 	margin-left:8px;
@@ -1852,7 +1852,7 @@ body.vscode-high-contrast{
 	padding:5px 8px;
 	border-radius:3px;
 	background-color:var(--gg-muted-detail-background);
-	font-family:var(--vscode-editor-font-family, monospace);
+	font-family:var(--gg-font-mono);
 	font-size:10px;
 	line-height:1.45;
 	white-space:pre-wrap;

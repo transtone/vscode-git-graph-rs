@@ -4,6 +4,8 @@ import type { BooleanOverride, FileViewType, RepoCommitOrdering } from './webvie
 
 /* Git Repo State */
 
+export type PullMethod = 'ff' | 'ff-only' | 'rebase';
+
 export interface GitRepoState {
 	pinnedBranches: string[];
 	pinnedCommits: PinnedCommit[];

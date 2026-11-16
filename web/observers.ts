@@ -52,64 +52,18 @@ function observeWindowSizeChanges(view: GitGraphView) {
 
 
 function applyGraphColumnAutoLayout(view: GitGraphView) {
-
-	if (typeof view.currentRepo === 'undefined' || view.tableElem.className.indexOf('autoLayout') === -1) return; // only the automatic layout depends on the view width
-
-
-
-	// Only the Graph column header is needed here: look it up directly by id (its class-based
-	// collection is scanned separately - and more expensively, on a large table - by makeTableResizable).
+	if (typeof view.currentRepo === 'undefined' || view.tableElem.className.indexOf('autoLayout') === -1) return;
 	const graphColElem = document.getElementById('tableHeaderGraphCol');
-
 	if (graphColElem === null) return;
 
-
-
-	// Reset any padding this function applied on a previous call before measuring: otherwise
-	// colWidth reflects that stale, JS-inflated padding instead of the column's base CSS
-	// padding, and deriving new padding from it makes the graph column width oscillate between
-	// calls while the window is being resized.
+	// A stable column must not depend on visible rows or measured header padding.
+	const width = view.isMobileLayout() ? 32 : 120;
 	graphColElem.style.padding = '';
-
-	let colWidth = graphColElem.offsetWidth, graphWidth = view.graph.getContentWidth();
-
-	let maxWidth = Math.round(view.viewElem.clientWidth * 0.333);
-
-	if (Math.max(graphWidth, colWidth) > maxWidth) {
-
-		view.graph.limitMaxWidth(maxWidth);
-
-		graphWidth = maxWidth;
-
-		view.tableElem.className = 'autoLayout limitGraphWidth';
-
-		view.tableElem.style.setProperty(CSS_PROP_LIMIT_GRAPH_WIDTH, maxWidth + 'px');
-
-	} else {
-
-		view.graph.limitMaxWidth(-1);
-
-		view.tableElem.className = 'autoLayout';
-
-		view.tableElem.style.removeProperty(CSS_PROP_LIMIT_GRAPH_WIDTH);
-
-	}
-
-
-
-	// The mobile layout has no column header text to fit, so a single-lane graph keeps its own width
-	const minWidth = view.isMobileLayout() ? 32 : 64;
-
-	if (colWidth < Math.max(graphWidth, minWidth)) {
-
-		graphColElem.style.padding = '6px ' + Math.floor((Math.max(graphWidth, minWidth) - (colWidth - COLUMN_LEFT_RIGHT_PADDING)) / 2) + 'px';
-
-	} else {
-
-		graphColElem.style.padding = '';
-
-	}
-
+	view.tableElem.className = 'autoLayout limitGraphWidth';
+	view.tableElem.style.setProperty(CSS_PROP_LIMIT_GRAPH_WIDTH, width + 'px');
+	view.graph.limitMaxWidth(width);
+	const graphElem = document.getElementById('commitGraph');
+	if (graphElem !== null) graphElem.style.left = graphColElem.offsetLeft + 'px';
 }
 
 
@@ -1197,15 +1151,12 @@ function makeTableResizable(view: GitGraphView) {
 
 	const makeTableFixedLayout = () => {
 
-		cols[0].style.width = columnWidths[0] + 'px';
-
-		cols[0].style.padding = '';
-
-		for (let i = 2; i < cols.length; i++) {
-
-			cols[i].style.width = columnWidths[parseInt(cols[i].dataset.col!)] + 'px';
-
+		for (const header of cols) {
+			const index = parseInt(header.dataset.col!);
+			if (index !== 1) header.style.width = columnWidths[index] + 'px';
 		}
+		const graphHeader = cols.find((header) => header.dataset.col === '0')!;
+		graphHeader.style.padding = '';
 
 		view.tableElem.className = 'fixedLayout';
 
@@ -1241,7 +1192,7 @@ function makeTableResizable(view: GitGraphView) {
 
 			let col = parseInt(cols[i].dataset.col!);
 
-			cols[i].innerHTML += (i > 0 ? '<span class="resizeCol left" data-col="' + (col - 1) + '"></span>' : '') + (i < cols.length - 1 ? '<span class="resizeCol right" data-col="' + col + '"></span>' : '');
+			cols[i].innerHTML += (i > 0 ? '<span class="resizeCol left" data-col="' + cols[i - 1].dataset.col + '"></span>' : '') + (i < cols.length - 1 ? '<span class="resizeCol right" data-col="' + col + '"></span>' : '');
 
 		}
 
@@ -1315,54 +1266,24 @@ function makeTableResizable(view: GitGraphView) {
 
 
 
-			if (col === 0) {
-
-				if (columnWidths[0] + mouseDeltaX < COLUMN_MIN_WIDTH) mouseDeltaX = -columnWidths[0] + COLUMN_MIN_WIDTH;
-
-				if (cols[1].clientWidth - COLUMN_LEFT_RIGHT_PADDING - mouseDeltaX < COLUMN_MIN_WIDTH) mouseDeltaX = cols[1].clientWidth - COLUMN_LEFT_RIGHT_PADDING - COLUMN_MIN_WIDTH;
-
-				columnWidths[0] += mouseDeltaX;
-
-				cols[0].style.width = columnWidths[0] + 'px';
-
-				view.graph.limitMaxWidth(columnWidths[0] + COLUMN_LEFT_RIGHT_PADDING);
-
-			} else {
-
-				let colWidth = col !== 1 ? columnWidths[col] : cols[1].clientWidth - COLUMN_LEFT_RIGHT_PADDING;
-
-				// The right neighbour is the next VISIBLE column: when every column to the right
-				// is hidden, the scan must stop at the end of the table — running past it made
-				// columnWidths[nextCol] (and cols[colIndex + 1]) undefined, throwing on every
-				// mousemove and writing a NaN into the widths. With no neighbour to shrink, the
-				// drag only clamps the dragged column to its minimum.
-				let nextCol = col + 1;
-
-				while (nextCol < columnWidths.length && columnWidths[nextCol] === COLUMN_HIDDEN) nextCol++;
-
-				const hasRightNeighbour = nextCol < columnWidths.length;
-
-				if (colWidth + mouseDeltaX < COLUMN_MIN_WIDTH) mouseDeltaX = -colWidth + COLUMN_MIN_WIDTH;
-
-				if (hasRightNeighbour && columnWidths[nextCol] - mouseDeltaX < COLUMN_MIN_WIDTH) mouseDeltaX = columnWidths[nextCol] - COLUMN_MIN_WIDTH;
-
-				if (col !== 1) {
-
-					columnWidths[col] += mouseDeltaX;
-
-					cols[colIndex].style.width = columnWidths[col] + 'px';
-
-				}
-
-				if (hasRightNeighbour) {
-
-					columnWidths[nextCol] -= mouseDeltaX;
-
-					cols[colIndex + 1].style.width = columnWidths[nextCol] + 'px';
-
-				}
-
+			const nextHeader = cols[colIndex + 1];
+			const nextCol = nextHeader ? parseInt(nextHeader.dataset.col!) : -1;
+			const currentWidth = col === 1 ? cols[colIndex].clientWidth - COLUMN_LEFT_RIGHT_PADDING : columnWidths[col];
+			if (currentWidth + mouseDeltaX < COLUMN_MIN_WIDTH) mouseDeltaX = COLUMN_MIN_WIDTH - currentWidth;
+			if (nextCol !== -1) {
+				const nextWidth = nextCol === 1 ? nextHeader.clientWidth - COLUMN_LEFT_RIGHT_PADDING : columnWidths[nextCol];
+				if (nextWidth - mouseDeltaX < COLUMN_MIN_WIDTH) mouseDeltaX = nextWidth - COLUMN_MIN_WIDTH;
 			}
+			if (col !== 1) {
+				columnWidths[col] += mouseDeltaX;
+				cols[colIndex].style.width = columnWidths[col] + 'px';
+			}
+			if (nextCol !== -1 && nextCol !== 1) {
+				columnWidths[nextCol] -= mouseDeltaX;
+				nextHeader.style.width = columnWidths[nextCol] + 'px';
+			}
+			view.graph.limitMaxWidth(columnWidths[0] + COLUMN_LEFT_RIGHT_PADDING);
+			view.renderGraph();
 
 			mouseX = mouseEvent.clientX;
 
@@ -1410,17 +1331,18 @@ function makeTableResizable(view: GitGraphView) {
 
 		col = parseInt((<HTMLElement>resizeColElem).dataset.col!);
 
-		while (columnWidths[col] === COLUMN_HIDDEN) col--;
+		colIndex = cols.findIndex((header) => parseInt(header.dataset.col!) === col);
+		// A left handle can name a hidden column; use the preceding visible header.
+		if (colIndex < 0) {
+			const cell = (<HTMLElement>resizeColElem).parentElement;
+			colIndex = cols.findIndex((header) => header.dataset.col === cell?.dataset.col) - 1;
+			if (colIndex < 0) return;
+			col = parseInt(cols[colIndex].dataset.col!);
+		}
 
 		mouseX = (<MouseEvent>e).clientX;
 
 		dragMoved = false;
-
-		for (let i = 0; i < cols.length; i++) {
-
-			if (parseInt(cols[i].dataset.col!) === col) colIndex = i;
-
-		}
 
 		eventOverlay.create('colResize', processResizingColumn, stopResizingColumn);
 

@@ -1,0 +1,15 @@
+#uncommittedChanges .wipCell { overflow:visible; border-bottom:1px dashed var(--vscode-focusBorder, #4788ff); }
+.wipRow { display:flex; align-items:center; gap:8px; min-width:0; min-height:32px; }
+.wipIcon { display:inline-flex; color:var(--vscode-textLink-foreground); }
+.wipIcon svg { width:16px; height:16px; }
+.wipLabel { border:1px dashed var(--vscode-textLink-foreground); color:var(--vscode-textLink-foreground); border-radius:3px; padding:0 6px; font-size:11px; line-height:24px; }
+.wipRow > .text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wipActions { display:inline-flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0; }
+.wipActions button { font-family:var(--gg-font-sans); font-size:11px; line-height:22px; cursor:pointer; padding:0 9px; white-space:nowrap; }
+.wipBadge { border:1px solid currentColor; border-radius:12px; background:transparent; }
+.wipConflicts { color:var(--vscode-gitDecoration-conflictingResourceForeground, #db3232); background:color-mix(in srgb, currentColor 10%, transparent); }
+.wipStaged { color:var(--vscode-gitDecoration-addedResourceForeground, #19864b); background:color-mix(in srgb, currentColor 10%, transparent); }
+.wipModified { color:var(--vscode-textLink-foreground, #008ccc); background:color-mix(in srgb, currentColor 10%, transparent); }
+.wipViewChanges { color:var(--vscode-textLink-foreground); border:1px solid currentColor; border-radius:4px; background:transparent; }
+.wipActions button:hover { filter:brightness(1.15); }
+.wipActions button:focus-visible { outline:1px solid var(--vscode-focusBorder); outline-offset:2px; }

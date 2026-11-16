@@ -25,8 +25,8 @@ import { describe, it } from 'node:test';
 import { bootView } from './webviewHarness.mjs';
 
 const headerTitles = (h) => Array.from(h.document.querySelectorAll('#tableColHeaders th')).map((th) => th.textContent);
-const WIDE_HEADER = ['Graph', 'Description', 'Date', 'Author', 'Commit'];
-const NARROW_HEADER = ['Graph', 'Description'];
+const WIDE_HEADER = ['Graph', 'Message', 'Author', 'Hash', 'Date'];
+const NARROW_HEADER = ['Graph', 'Message'];
 
 /** Emulate a view width: jsdom has no layout engine, so the harness stubs clientWidth (1200). */
 function setViewWidth(h, width) {
@@ -273,7 +273,7 @@ describe('the narrow window (mobileAdaptation) layout', () => {
 
 	it('keeps long presses inert in the wide layout', async () => {
 		const h = await bootView(30);
-		const target = h.rows()[2].querySelector('td:nth-child(2) .text');
+		const target = h.rows()[2].querySelector('.messageCol .text');
 
 		touch(h, 'touchstart', target);
 		await sleep(600);
