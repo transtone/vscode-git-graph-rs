@@ -55,3 +55,20 @@ it('omits a duplicate committer and keeps identity text escaped',async()=>{
  assert.ok(h.document.querySelector('.cdvDesktopStatus .cdvmAvatar'));
  }finally{h.window.close()}
 });
+
+it('replaces folder icons without nesting SVGs when toggling all folders',async()=>{
+ const h=await bootView(5);
+ try {
+ const commit=h.state.history[0];
+ h.rows()[0].querySelector('.messageCol .text').click();await h.pump();
+ const details={hash:commit.hash,parents:[],author:'Author',authorEmail:'author@example.com',authorDate:1700000000,committer:'Author',committerEmail:'author@example.com',committerDate:1700000000,signature:null,body:'Subject',fileChanges:[{oldFilePath:'src/file.ts',newFilePath:'src/file.ts',type:'M',additions:1,deletions:1}]};
+ h.dispatch({command:'commitDetails',repo:'C:\\repo',error:null,avatar:null,codeReview:null,refresh:true,commitDetails:details});await h.pump();
+ const folder=h.document.querySelector('.fileTreeFolderIcon');
+ assert.ok(folder);
+ h.document.getElementById('cdvCollapse').click();
+ assert.equal(folder.querySelector(':scope > svg svg'),null,'collapse does not nest SVGs');
+ h.document.getElementById('cdvExpand').click();
+ assert.equal(folder.querySelector(':scope > svg svg'),null,'expand does not nest SVGs');
+ assert.ok(folder.querySelector(':scope > svg.openFolderIcon'));
+ }finally{h.window.close()}
+});

@@ -1,4 +1,5 @@
  .vscode/**
+.pi/**
 resources/upstream/**
 resources/rust-crab.svg
 resources/notification/*.svg

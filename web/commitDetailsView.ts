@@ -1500,7 +1500,7 @@ function openFolders(view: GitGraphView, open: boolean) {
 
 			parent.classList.remove('closed');
 
-			sourceElem.children[0].children[0].innerHTML = SVG_ICONS.openFolder;
+			sourceElem.children[0].innerHTML = SVG_ICONS.openFolder;
 
 			parent.children[1].classList.remove('hidden');
 
@@ -1512,7 +1512,7 @@ function openFolders(view: GitGraphView, open: boolean) {
 
 			parent.classList.add('closed');
 
-			sourceElem.children[0].children[0].innerHTML = SVG_ICONS.closedFolder;
+			sourceElem.children[0].innerHTML = SVG_ICONS.closedFolder;
 
 			parent.children[1].classList.add('hidden');
 
