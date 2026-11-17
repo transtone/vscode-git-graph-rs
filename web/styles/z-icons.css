@@ -20,7 +20,7 @@ svg.lucide, svg.lucide * {
 .signatureInfo.U svg, .signatureInfo.Y svg, .signatureInfo.R svg, .signatureInfo.E svg{color:var(--vscode-editorWarning-foreground, #f09000);}
 .signatureInfo.B svg{color:var(--vscode-charts-red, #e00000);}
 #cdvLoading svg{color:var(--vscode-editor-foreground);}
-svg.openFolderIcon, svg.closedFolderIcon, svg.fileIcon, .fileTreeFileAction svg, #cdvLastFileViewed svg{color:var(--vscode-editor-foreground);}
+svg.openFolderIcon, svg.closedFolderIcon, .fileTreeFileAction svg, #cdvLastFileViewed svg{color:var(--vscode-editor-foreground);}
 .gitRef > svg{color:var(--vscode-editor-background);}
 #loadingHeader svg{color:var(--vscode-editor-foreground);}
 #currentBtn svg, #findBtn svg, #filterBtn svg, #statisticsBtn svg, #terminalBtn svg, #settingsBtn svg, #fetchBtn svg, #refreshBtn svg{color:var(--vscode-editor-foreground);}
@@ -39,10 +39,10 @@ body.mobileMode #cdvFileViewTypeList.active svg, body.mobileMode #cdvFileViewTyp
 #worktreeWidget{color:var(--vscode-editorSuggestWidget-foreground);}
 
 /* 14px file and folder glyphs centered in stable 16px slots and 18px rows. */
-.fileTreeFolderIcon, .fileTreeFileIcon, .fileTreeRepoIcon {
+.fileTreeFolderIcon, .fileTreeRepoIcon {
 	width:16px !important;
 }
-.fileTreeFolderIcon > svg.lucide, .fileTreeFileIcon > svg.lucide, .fileTreeRepoIcon > svg.lucide {
+.fileTreeFolderIcon > svg.lucide, .fileTreeRepoIcon > svg.lucide {
 	width:14px !important;
 	height:14px !important;
 	left:1px;

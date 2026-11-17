@@ -28,9 +28,12 @@ body:not(.mobileMode) #commitTable .dateCol { min-width:80px; max-width:80px; te
 }
 #commitTable .authorCol, #commitTable .hashCol, #commitTable .dateCol { font-size:11px; color:var(--vscode-descriptionForeground); }
 #commitTable .messageCol .gitRef,
+#commitTable .messageCol .gitRefName,
+#commitTable .messageCol .gitRefHeadRemote,
 #commitTable .messageCol button,
 #commitTable .messageCol .refsOverflow,
 #commitTable .messageCol .wipLabel { font-family:var(--gg-font-sans); }
+#commitTable .messageCol .gitRefHeadRemote { font-style:normal; }
 #commitTable .hashCol { font-family:var(--gg-font-mono); }
 #commitTable tr.commit.current span.description .text { font-weight:500; }
 #commitTable tr.commit.mute td.text, #commitTable tr.commit.mute span.description .text { opacity:1; color:var(--vscode-descriptionForeground); }
@@ -39,12 +42,12 @@ body:not(.mobileMode) #commitTable .dateCol { min-width:80px; max-width:80px; te
 #commitGraph .graphAvatarRing:hover { transform:none; }
 #commitGraph .graphAvatarRing { fill:none; }
 
-/* Expanded commit details and file tree follow the message font; hash/date values use Inter. */
+/* Expanded commit details and file tree follow the message font; hash values use Geist Mono. */
 #cdvSummary, #cdvFiles {
 	font-family:var(--vscode-font-family, system-ui, sans-serif);
 }
-#cdvSummary .cdvValueInter {
-	font-family:var(--gg-font-sans);
+#cdvSummary .cdvValueMono {
+	font-family:var(--gg-font-mono);
 }
 
 /* Reference overflow stays operable without widening the message column. */

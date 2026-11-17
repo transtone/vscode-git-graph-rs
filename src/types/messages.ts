@@ -626,6 +626,16 @@ export interface ResponseMerge extends ResponseWithErrorInfo {
 	readonly actionOn: MergeActionOn;
 }
 
+export interface RequestFastForwardBranch extends RepoRequest {
+	readonly command: 'fastForwardBranch';
+	readonly branchName: string;
+	readonly targetBranch: string;
+}
+export interface ResponseFastForwardBranch extends ResponseWithErrorInfo {
+	readonly command: 'fastForwardBranch';
+}
+
+
 export interface RequestOpenExtensionSettings extends BaseMessage {
 	readonly command: 'openExtensionSettings';
 }
@@ -1066,6 +1076,7 @@ export type RequestMessage =
 	| RequestLoadRepoInfo
 	| RequestLoadRepos
 	| RequestMerge
+	| RequestFastForwardBranch
 	| RequestOpenExtensionSettings
 	| RequestOpenExternalDirDiff
 	| RequestOpenExternalUrl
@@ -1155,6 +1166,7 @@ export type ResponseMessage =
 	| ResponseLoadRepoInfo
 	| ResponseLoadRepos
 	| ResponseMerge
+	| ResponseFastForwardBranch
 	| ResponseOpenExtensionSettings
 	| ResponseOpenExternalDirDiff
 	| ResponseOpenExternalUrl

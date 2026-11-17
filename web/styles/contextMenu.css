@@ -38,10 +38,16 @@ body.vscode-high-contrast .contextMenu{
 	background-color:var(--vscode-menu-selectionBackground, var(--vscode-menu-background));
 	color:var(--vscode-menu-selectionForeground, var(--vscode-menu-foreground));
 }
-body.vscode-high-contrast .contextMenu li.contextMenuItem:hover{
-	outline:1px solid var(--vscode-menu-selectionBorder, transparent);
-	outline-offset:-2px;
+.contextMenu li.contextMenuItem.disabled{
+	color:var(--vscode-disabledForeground, var(--vscode-menu-foreground));
+	opacity:0.6;
+	cursor:default;
 }
+.contextMenu li.contextMenuItem.disabled:hover{
+	background-color:transparent;
+	color:var(--vscode-disabledForeground, var(--vscode-menu-foreground));
+}
+
 
 .contextMenu li.contextMenuDivider{
 	margin:4px 10px;

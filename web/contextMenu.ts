@@ -6,6 +6,7 @@ interface ContextMenuAction {
 	readonly onClick: () => void;
 	readonly children?: ContextMenuActions;
 	readonly checked?: boolean; // Required in checked context menus
+	readonly disabled?: boolean; // Disabled actions remain visible but cannot be invoked
 }
 
 type ContextMenuActions = ReadonlyArray<ReadonlyArray<ContextMenuAction>>;
@@ -54,7 +55,8 @@ class ContextMenu {
 			const index = handlerId++;
 			handlers[index] = action;
 			const children = action.children ? render(action.children, false) : '';
-			return '<li class="contextMenuItem" role="menuitem" tabindex="-1" data-index="' + index + '"' + (children ? ' aria-haspopup="menu" aria-expanded="false"' : '') + '>'
+			const disabled = action.disabled === true;
+			return '<li class="contextMenuItem' + (disabled ? ' disabled' : '') + '" role="menuitem" tabindex="-1" data-index="' + index + '"' + (disabled ? ' aria-disabled="true"' : '') + (children ? ' aria-haspopup="menu" aria-expanded="false"' : '') + '>'
 				+ (isChecked ? '<span class="contextMenuItemCheck">' + (action.checked ? SVG_ICONS.check : '') + '</span>' : '') + action.title
 				+ (children ? '<span class="submenuArrow" aria-hidden="true">' + SVG_ICONS.chevronDown + '</span><ul class="contextMenu contextSubmenu" role="menu" style="display:none">' + children + '</ul>' : '') + '</li>';
 		}).join('')).filter(Boolean).join('<li class="contextMenuDivider" role="separator"></li>');
@@ -112,8 +114,9 @@ class ContextMenu {
 			const item = (e.target as Element).closest<HTMLElement>('.contextMenuItem');
 			if (!item || !menu.contains(item)) return;
 			e.stopPropagation();
-			if (submenuFor(item)) { expand(item); return; }
 			const action = handlers[Number(item.dataset.index)];
+			if (action === undefined || action.disabled === true) return;
+			if (submenuFor(item)) { expand(item); return; }
 			this.close();
 			action.onClick();
 		});

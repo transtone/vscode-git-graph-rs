@@ -1422,7 +1422,13 @@ export class GitGraphView extends Disposable {
 					error: await this.dataSource.merge(msg.repo, msg.obj, msg.actionOn, msg.createNewCommit, msg.squash, msg.noCommit)
 				});
 				break;
-			case 'openExtensionSettings':
+			case 'fastForwardBranch':
+				this.sendMessage({
+					command: 'fastForwardBranch',
+					error: await this.dataSource.fastForwardBranch(msg.repo, msg.branchName, msg.targetBranch)
+				});
+				break;
+
 				this.sendMessage({
 					command: 'openExtensionSettings',
 					error: await openExtensionSettings()

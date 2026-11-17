@@ -1050,9 +1050,6 @@ body.mobileMode #cdvFiles .fileTreeFileRecord:active, body.mobileMode #cdvFiles 
 body.mobileMode #cdvFiles .fileTreeFileRecord.contextMenuActive{
 	background-color:var(--m-fill);
 }
-body.mobileMode #cdvFiles .fileTreeFileIcon{
-	display:none;
-}
 body.mobileMode #cdvFiles .gitFileName{
 	min-width:0;
 	overflow:hidden;

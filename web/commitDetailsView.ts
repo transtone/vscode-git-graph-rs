@@ -1319,8 +1319,8 @@ function renderDesktopCommitSummary(view: GitGraphView, expandedCommit: Expanded
 		+ (differentCommitter ? ' · ' + formatStr(strings.cdvCommittedBy, person(details.committer, details.committerEmail)) : '')
 		+ (details.committerDate !== details.authorDate ? ' · ' + escapeHtml(formatMediumDate(details.committerDate)) : '')
 		+ (details.signature !== null ? ' ' + generateSignatureHtml(details.signature) : '') + '</div></div>'
-		+ '<button type="button" class="cdvHashButton cdvValueInter" data-copy-hash="' + escapeHtml(details.hash) + '" title="' + escapeHtml(strings.menuCopyCommitHash + ': ' + details.hash) + '">' + abbrevCommit(details.hash) + SVG_ICONS.copy + '</button>'
-		+ '</div><div class="cdvStatusRule"></div><div class="cdvParentsRow"><span class="cdvParentsLabel">' + strings.cdvParentsLabel.replace(/<[^>]*>/g, '').replace(/\s*[:：]\s*$/, '') + '</span><span class="cdvValueInter">' + parents + '</span></div><div class="cdvStatusRule cdvStatusEnd"></div></div>'
+		+ '<button type="button" class="cdvHashButton cdvValueMono" data-copy-hash="' + escapeHtml(details.hash) + '" title="' + escapeHtml(strings.menuCopyCommitHash + ': ' + details.hash) + '">' + abbrevCommit(details.hash) + SVG_ICONS.copy + '</button>'
+		+ '</div><div class="cdvStatusRule"></div><div class="cdvParentsRow"><span class="cdvParentsLabel">' + strings.cdvParentsLabel.replace(/<[^>]*>/g, '').replace(/\s*[:：]\s*$/, '') + '</span><span class="cdvValueMono">' + parents + '</span></div><div class="cdvStatusRule cdvStatusEnd"></div></div>'
 		+ '<div id="cdvDesktopMessage" class="cdvDesktopMessage" tabindex="0">' + renderCommitMessageBody(view, expandedCommit, details.body, textFormatter) + '</div>';
 }
 

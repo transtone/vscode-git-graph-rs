@@ -1627,9 +1627,24 @@ export class DataSource extends Disposable {
 
 	/* Git Action Methods - Branches & Commits */
 
+	/** Move a local branch forward to a newer current-branch tip without creating a merge commit. */
+	public async fastForwardBranch(repo: string, branchName: string, targetBranch: string): Promise<ErrorInfo> {
+		const unsafeArgs = DataSource.checkUnsafeGitArgs(['branchName', branchName, 'ref'], ['targetBranch', targetBranch, 'ref']);
+		if (unsafeArgs !== null) return unsafeArgs;
+		const currentBranch = await this.gitOutput(['symbolic-ref', '--quiet', '--short', 'HEAD'], repo, (out) => out.trim()).catch(() => '');
+		if (!currentBranch) return t('pullDetachedHead');
+		if (currentBranch !== targetBranch) return t('fastForwardTargetChanged');
+		if (branchName === currentBranch) return t('fastForwardSameBranch');
+		const isLocalBranch = await this.gitOutput(['show-ref', '--verify', '--quiet', 'refs/heads/' + branchName], repo, () => true).then(() => true, () => false);
+		if (!isLocalBranch) return t('fastForwardNotPossible');
+		if ((await this.getOperationState(repo)).type !== null) return t('pullOperationActive');
+		const canFastForward = await this.gitOutput(['merge-base', '--is-ancestor', branchName, targetBranch], repo, () => true).then(() => true, () => false);
+		if (!canFastForward) return t('fastForwardNotPossible');
+		return this.runGitCommand(['branch', '--force', branchName, targetBranch], repo);
+	}
 	/**
 	 * Merge a branch or commit into the current branch.
-	 * @param repo The path of the repository.
+	 * @param repo The repository.
 	 * @param obj The object to be merged into the current branch.
 	 * @param actionOn Is the merge on a branch, remote-tracking branch or commit.
 	 * @param createNewCommit Is `--no-ff` enabled.

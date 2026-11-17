@@ -218,14 +218,7 @@ function getBranchContextMenuActions(view: GitGraphView, target: DialogTarget & 
 
 			}
 
-		}, {
-
-			title: strings.menuPullBranch,
-			visible: visibility.pull && view.gitRemotes.length > 0 && view.gitBranchHead === refName,
-			children: getPullMethodActions(view, '', ''),
-			onClick: () => {}
-
-		}
+		}, ...getPullMethodActions(view, '', target)
 
 	], [
 
@@ -822,14 +815,7 @@ function getRemoteBranchContextMenuActions(view: GitGraphView, remote: string, t
 
 			onClick: () => mergeAction(view, refName, refName, GG.MergeActionOn.RemoteTrackingBranch, target)
 
-		}, {
-
-			title: formatStr(strings.pullIntoBranchMenu, escapeHtml(view.gitBranchHead ?? 'HEAD')),
-			visible: visibility.pull && remote !== '',
-			children: getPullMethodActions(view, remote, branchName),
-			onClick: () => {}
-
-		}
+		}, ...getPullMethodActions(view, remote, target)
 
 	], [
 

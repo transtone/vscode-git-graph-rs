@@ -284,8 +284,6 @@
 #exportRepositoryConfig svg{
 	margin-right:7px;
 }
-/* SVG_ICONS.file carries the fileIcon class, whose file-tree rules in main.css
-   (position:absolute, tree fill) must not apply inside a settings button */
 #openLogFile svg{
 	position:static;
 	fill:inherit;
