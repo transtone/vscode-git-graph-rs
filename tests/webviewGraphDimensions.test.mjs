@@ -56,6 +56,11 @@ async function refreshWithChange(h, setTableHeight) {
 function emulateTableHeight(h) {
 	let tableH = 0;
 	const proto = h.window.Element.prototype;
+	const originalRect = proto.getBoundingClientRect;
+	proto.getBoundingClientRect = function () {
+		if (this.id === 'commitGraph') return { top: 65, left: 0, right: 0, bottom: 65, width: 0, height: 0 };
+		return originalRect.call(this);
+	};
 	const original = Object.getOwnPropertyDescriptor(proto, 'clientHeight');
 	Object.defineProperty(proto, 'clientHeight', {
 		get() {
@@ -79,6 +84,16 @@ function assertRealHeight(h, label) {
 }
 
 describe('the graph svg keeps valid dimensions across measurable and unmeasurable layouts', () => {
+	it('uses actual commit row height even when table height includes extra detail content', async () => {
+		const h = await bootView(5);
+		try {
+			const setTableHeight = emulateTableHeight(h);
+			setTableHeight(HEADER_HEIGHT + 6 * ROW_HEIGHT + 180);
+			await refreshWithChange(h);
+			assert.equal(graphHeights(h).svg, HEADER_HEIGHT + h.state.history.length * ROW_HEIGHT,
+				'expanded content must not change the commit row pitch');
+		} finally { h.window.close(); }
+	});
 	it('a render with no measurable layout (hidden view) keeps the configured grid instead of collapsing to noise', async () => {
 		const h = await bootView(150);
 		await refreshWithChange(h); // jsdom default: every clientHeight is 0
@@ -91,7 +106,7 @@ describe('the graph svg keeps valid dimensions across measurable and unmeasurabl
 
 		await refreshWithChange(h, setTableHeight);
 		const measured = graphHeights(h).svg;
-		assert.equal(measured, HEADER_HEIGHT + h.state.history.length * ROW_HEIGHT, 'the measured table height is reconstructed exactly');
+		assert.equal(measured, HEADER_HEIGHT + h.state.history.length * ROW_HEIGHT, 'the measured row pitch and graph origin are reconstructed exactly');
 
 		setTableHeight(0); // the view goes hidden: every clientHeight reports 0 again
 		await refreshWithChange(h);

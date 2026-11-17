@@ -1623,38 +1623,47 @@ class GitGraphView {
 			return;
 		}
 
-		const colHeadersElem = document.getElementById('tableColHeaders');
 		const graphHeader = document.getElementById('tableHeaderGraphCol');
 		const graphElem = document.getElementById('commitGraph');
 		if (graphHeader !== null && graphElem !== null) graphElem.style.left = graphHeader.offsetLeft + 'px';
 		const cdvHeight = this.gitRepos[this.currentRepo].cdvHeight;
-		// (+1 for its bottom border; the mobile layout hides the header row, which then adds nothing)
-		const headerHeight = colHeadersElem !== null && colHeadersElem.clientHeight > 0 ? colHeadersElem.clientHeight + 1 : 0;
 		const expandedCommit = isCdvDocked(this) ? null : this.expandedCommit;
 		const expandedCommitElem = expandedCommit !== null ? document.getElementById('cdv') : null;
 
 		// Extra in-table row expansions (e.g. meta event rows) are no longer produced; the graph
 		// API still accepts them for the inline Commit Details View
 		const metaExpansions: { index: number, height: number }[] = [];
-		const metaRowsHeight = 0;
 
 		// Update the graphs grid dimensions
 		this.config.graph.grid.expandY = expandedCommitElem !== null
 			? expandedCommitElem.getBoundingClientRect().height
 			: cdvHeight;
-		// The row height is MEASURED from the rendered table (real rows can deviate from the
-		// configured graph.rowHeight), but a layout reporting no height - a hidden view
-		// (a backgrounded tab measures every clientHeight as 0) or a table not yet laid out -
-		// must not overwrite the last good grid: the graph's total height is reconstructed from
-		// these values, and reconstructing it from a zero measurement leaves floating point noise
-		// around zero, which SVG rejects outright once it tips negative. Keep the current grid
-		// (the configured one before the first measurable render) until a real layout is seen.
-		const measuredRowHeight = this.commits.length > 0 && this.tableElem.children.length > 0
-			? (this.tableElem.children[0].clientHeight - headerHeight - (expandedCommit !== null ? cdvHeight : 0) - metaRowsHeight) / this.commits.length
+		// Measure a real commit row: expanded details and virtual spacers must never
+		// participate in the graph's row pitch.
+		const commitRows = this.tableElem.querySelectorAll<HTMLElement>('tr.commit:not(#uncommittedChanges)');
+		// The first row can include a collapsed border beside WIP or a spacer; use the next
+		// ordinary row when available so that a fractional border cannot accumulate as pitch.
+		const commitRow = commitRows[1] ?? commitRows[0] ?? null;
+		const measuredRowHeight = this.tableElem.firstElementChild?.clientHeight
+			? commitRow?.getBoundingClientRect().height ?? 0
 			: 0;
 		if (measuredRowHeight > 0) {
 			this.config.graph.grid.y = measuredRowHeight;
-			this.config.graph.grid.offsetY = headerHeight + measuredRowHeight / 2;
+			const wip = this.tableElem.querySelector<HTMLElement>('#uncommittedChanges');
+			if (wip !== null) {
+				const extra = wip.getBoundingClientRect().height - measuredRowHeight;
+				if (Math.abs(extra) > 0.01) {
+					metaExpansions.push({ index: -1, height: extra / 2 }, { index: 0, height: extra / 2 });
+				}
+			}
+			if (commitRow !== null && graphElem !== null) {
+				const index = parseInt(commitRow.dataset.id!, 10);
+				const row = commitRow.getBoundingClientRect();
+				const graphTop = graphElem.getBoundingClientRect().top;
+				const extraBeforeRow = metaExpansions.reduce((sum, expansion) => sum + (expansion.index < index ? expansion.height : 0), 0)
+					+ (expandedCommit !== null && expandedCommit.index < index ? this.config.graph.grid.expandY : 0);
+				if (Number.isFinite(index)) this.config.graph.grid.offsetY = row.top + row.height / 2 - graphTop - index * measuredRowHeight - extraBeforeRow;
+			}
 		}
 
 		this.graph.render(expandedCommit, metaExpansions, this.renderedRange);

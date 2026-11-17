@@ -77,6 +77,49 @@ const session = async (variant, scenarios) => {
 	return results;
 };
 
+const checkVertexAlignment = async (label) => {
+	const result = await page.evaluate(() => {
+		const vertices = new Map();
+		for (const circle of document.querySelectorAll('#commitGraph circle[data-id]')) {
+			const rect = circle.getBoundingClientRect();
+			vertices.set(circle.dataset.id, rect.top + rect.height / 2);
+		}
+		const rows = [...document.querySelectorAll('#commitTable tr.commit')];
+		const diffs = [];
+		for (const row of rows) {
+			const vertexY = vertices.get(row.dataset.id);
+			const rect = row.getBoundingClientRect();
+			const rowY = rect.top + rect.height / 2;
+			if (vertexY === undefined) diffs.push({ id: row.dataset.id, text: row.textContent.trim().slice(0, 40), missingVertex: true });
+			else diffs.push({ id: row.dataset.id, text: row.textContent.trim().slice(0, 40), delta: vertexY - rowY });
+		}
+		const bad = diffs.filter((x) => x.missingVertex || Math.abs(x.delta) >= 0.75);
+		return { rows: rows.length, compared: diffs.length - diffs.filter((x) => x.missingVertex).length,
+			maxDelta: Math.max(0, ...diffs.filter((x) => !x.missingVertex).map((x) => Math.abs(x.delta))), bad: bad.slice(0, 8) };
+	});
+	check(result.rows > 0 && result.compared === result.rows && result.bad.length === 0,
+		'vertex alignment: ' + label + ' row/circle centers differ by < 0.75 CSS px', result);
+};
+
+/* ---------------- real vertex-to-row center alignment ---------------- */
+await load('');
+await checkVertexAlignment('base');
+await run('jump');
+await checkVertexAlignment('virtualized mid-history');
+await load('');
+await run('jump');
+await run('openCdv');
+check(await page.$('#cdvSummary') !== null, 'vertex alignment: commit details actually opened');
+await checkVertexAlignment('expanded commit details');
+await load('');
+await run('uncommittedAppear');
+await checkVertexAlignment('WIP row');
+await page.setViewport({ width: 1280, height: 760, deviceScaleFactor: 1.25 });
+await load('');
+await run('uncommittedAppear');
+await checkVertexAlignment('125% device scale');
+await page.setViewport({ width: 1280, height: 760, deviceScaleFactor: 1 });
+
 /* ---------------- main session (default config) ---------------- */
 const mainChecks = [];
 

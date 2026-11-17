@@ -652,7 +652,7 @@ function renderCommitDetailsView(view: GitGraphView, refresh: boolean) {
 
 	} else {
 
-		html += '<div id="cdvSummary">';
+		html += '<div id="cdvSummary"' + (!isMobile && expandedCommit.compareWithHash === null && expandedCommit.commitHash !== UNCOMMITTED ? ' class="cdvHasDesktopDetails"' : '') + '>';
 
 		if (expandedCommit.compareWithHash === null) {
 
@@ -682,41 +682,7 @@ function renderCommitDetailsView(view: GitGraphView, refresh: boolean) {
 					html += renderMobileCommitSummary(view, expandedCommit, commitDetails, textFormatter);
 				} else {
 
-					const parents = commitDetails.parents.length > 0
-
-						? commitDetails.parents.map((parent: string) => {
-
-							const escapedParent = escapeHtml(parent);
-
-							return typeof view.commitLookup[parent] === 'number'
-
-								? '<span class="' + CLASS_INTERNAL_URL + '" data-type="commit" data-value="' + escapedParent + '" tabindex="-1">' + escapedParent + '</span>'
-
-								: escapedParent;
-
-						}).join(', ')
-
-						: strings.noneValue;
-
-					html += '<span class="cdvSummaryTop' + (expandedCommit.avatar !== null ? ' withAvatar' : '') + '"><span class="cdvSummaryTopRow"><span class="cdvSummaryKeyValues">'
-
-						+ strings.cdvCommitLabel + '<span class="cdvValueInter">' + escapeHtml(commitDetails.hash) + '</span><br>'
-
-						+ strings.cdvParentsLabel + '<span class="cdvValueInter">' + parents + '</span><br>'
-
-						+ strings.cdvAuthorLabel + escapeHtml(commitDetails.author) + (commitDetails.authorEmail !== '' ? ' &lt;<a class="' + CLASS_EXTERNAL_URL + '" href="mailto:' + escapeHtml(commitDetails.authorEmail) + '" tabindex="-1">' + escapeHtml(commitDetails.authorEmail) + '</a>&gt;' : '') + '<br>'
-
-						+ (commitDetails.authorDate !== commitDetails.committerDate ? strings.cdvAuthorDateLabel + '<span class="cdvValueInter">' + formatLongDate(commitDetails.authorDate) + '</span><br>' : '')
-
-						+ strings.cdvCommitterLabel + escapeHtml(commitDetails.committer) + (commitDetails.committerEmail !== '' ? ' &lt;<a class="' + CLASS_EXTERNAL_URL + '" href="mailto:' + escapeHtml(commitDetails.committerEmail) + '" tabindex="-1">' + escapeHtml(commitDetails.committerEmail) + '</a>&gt;' : '') + (commitDetails.signature !== null ? generateSignatureHtml(commitDetails.signature) : '') + '<br>'
-
-						+ (commitDetails.authorDate !== commitDetails.committerDate ? strings.cdvCommitterDateLabel : strings.cdvDateLabel) + '<span class="cdvValueInter">' + formatLongDate(commitDetails.committerDate) + '</span>'
-
-						+ '</span>'
-
-						+ (expandedCommit.avatar !== null ? '<span class="cdvSummaryAvatar"><img src="' + expandedCommit.avatar + '"></span>' : '')
-
-						+ '</span></span><br><br>' + renderCommitMessageBody(view, expandedCommit, commitDetails.body, textFormatter);
+					html += renderDesktopCommitSummary(view, expandedCommit, commitDetails, textFormatter);
 
 				}
 
@@ -854,6 +820,11 @@ function renderCommitDetailsView(view: GitGraphView, refresh: boolean) {
 	if (!expandedCommit.loading) {
 
 		makeCdvFileViewInteractive(view);
+		const copyHash = document.querySelector<HTMLButtonElement>('#cdvSummary [data-copy-hash]');
+		if (copyHash !== null) copyHash.addEventListener('click', () => {
+			sendMessage({ command: 'copyToClipboard', type: strings.copyTypeCommitHash, data: copyHash.dataset.copyHash! });
+		});
+
 
 		renderCdvFileViewTypeBtns(view);
 
@@ -863,7 +834,7 @@ function renderCommitDetailsView(view: GitGraphView, refresh: boolean) {
 
 
 
-		observeElemScroll('cdvSummary', expandedCommit.scrollTop.summary, (scrollTop) => {
+		observeElemScroll(document.getElementById('cdvDesktopMessage') !== null ? 'cdvDesktopMessage' : 'cdvSummary', expandedCommit.scrollTop.summary, (scrollTop) => {
 
 			if (view.expandedCommit === null) return;
 
@@ -1331,6 +1302,28 @@ function setFileViewType(view: GitGraphView, type: GG.FileViewType) {
  * inline-formatted view) when the `git-graph-rs.markdown` setting is on and the message looks
  * like it contains Markdown, otherwise exactly as before (inline formatting only).
  */
+
+/** Desktop identity and commit message, matching the inline details layout. */
+function renderDesktopCommitSummary(view: GitGraphView, expandedCommit: ExpandedCommit, details: GG.GitCommitDetails, textFormatter: TextFormatter) {
+	const person = (name: string, email: string) => escapeHtml(name) + (email !== '' ? ' &lt;<a class="' + CLASS_EXTERNAL_URL + '" href="mailto:' + escapeHtml(email) + '" tabindex="-1">' + escapeHtml(email) + '</a>&gt;' : '');
+	const parents = details.parents.length === 0 ? strings.noneValue : details.parents.map(parent => {
+		const full = escapeHtml(parent);
+		return typeof view.commitLookup[parent] === 'number'
+			? '<span class="cdvParentButton ' + CLASS_INTERNAL_URL + '" data-type="commit" data-value="' + full + '" title="' + full + '" tabindex="-1">' + abbrevCommit(parent) + '</span>'
+			: '<span class="cdvParentButton" title="' + full + '">' + abbrevCommit(parent) + '</span>';
+	}).join(', ');
+	const differentCommitter = details.committer !== details.author || details.committerEmail !== details.authorEmail || details.committerDate !== details.authorDate;
+	return '<div class="cdvDesktopStatus"><div class="cdvIdentity">' + getMobileAvatarHtml(details.author, expandedCommit.avatar)
+		+ '<div class="cdvStatusFields"><div class="cdvAuthor">' + person(details.author, details.authorEmail) + '</div>'
+		+ '<div class="cdvMeta" title="' + escapeHtml(formatLongDate(details.authorDate)) + '">' + formatShortDate(details.authorDate, true).formatted + ' · ' + escapeHtml(formatMediumDate(details.authorDate))
+		+ (differentCommitter ? ' · ' + formatStr(strings.cdvCommittedBy, person(details.committer, details.committerEmail)) : '')
+		+ (details.committerDate !== details.authorDate ? ' · ' + escapeHtml(formatMediumDate(details.committerDate)) : '')
+		+ (details.signature !== null ? ' ' + generateSignatureHtml(details.signature) : '') + '</div></div>'
+		+ '<button type="button" class="cdvHashButton cdvValueInter" data-copy-hash="' + escapeHtml(details.hash) + '" title="' + escapeHtml(strings.menuCopyCommitHash + ': ' + details.hash) + '">' + abbrevCommit(details.hash) + SVG_ICONS.copy + '</button>'
+		+ '</div><div class="cdvStatusRule"></div><div class="cdvParentsRow"><span class="cdvParentsLabel">' + strings.cdvParentsLabel.replace(/<[^>]*>/g, '').replace(/\s*[:：]\s*$/, '') + '</span><span class="cdvValueInter">' + parents + '</span></div><div class="cdvStatusRule cdvStatusEnd"></div></div>'
+		+ '<div id="cdvDesktopMessage" class="cdvDesktopMessage" tabindex="0">' + renderCommitMessageBody(view, expandedCommit, details.body, textFormatter) + '</div>';
+}
+
 function renderCommitMessageBody(view: GitGraphView, expandedCommit: ExpandedCommit, body: string, textFormatter: TextFormatter): string {
 	const offerToggle = view.config.markdown && hasMarkdown(body);
 	const showMarkdown = offerToggle && expandedCommit.showMarkdown;

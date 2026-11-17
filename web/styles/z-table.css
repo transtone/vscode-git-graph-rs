@@ -27,6 +27,10 @@ body:not(.mobileMode) #commitTable .dateCol { min-width:80px; max-width:80px; te
 	font-weight:400;
 }
 #commitTable .authorCol, #commitTable .hashCol, #commitTable .dateCol { font-size:11px; color:var(--vscode-descriptionForeground); }
+#commitTable .messageCol .gitRef,
+#commitTable .messageCol button,
+#commitTable .messageCol .refsOverflow,
+#commitTable .messageCol .wipLabel { font-family:var(--gg-font-sans); }
 #commitTable .hashCol { font-family:var(--gg-font-mono); }
 #commitTable tr.commit.current span.description .text { font-weight:500; }
 #commitTable tr.commit.mute td.text, #commitTable tr.commit.mute span.description .text { opacity:1; color:var(--vscode-descriptionForeground); }
