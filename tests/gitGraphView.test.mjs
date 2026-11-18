@@ -8,6 +8,7 @@
 
 import assert from 'node:assert/strict';
 import { Module } from 'node:module';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 
 /* The stand-in for the extension host (src/gitGraphView.ts only transitively requires 'vscode'). */
@@ -34,7 +35,32 @@ Module._load = function (request, parent, isMain) {
 	return originalLoad.apply(this, arguments);
 };
 
-const { remoteRefsFollowUpChanged } = await import('../out/gitGraphView.js');
+const { GitGraphView, remoteRefsFollowUpChanged } = await import('../out/gitGraphView.js');
+
+describe('restored webview font access', () => {
+	it('allows the bundled stylesheet and font files after a window reload', () => {
+		const extensionPath = path.resolve('target/font-resource-test');
+		const applied = new Error('Webview options captured');
+		let options;
+		const panel = {
+			webview: {
+				set options(value) {
+					options = value;
+					throw applied;
+				}
+			}
+		};
+		// Capture the restored panel permissions before constructing the rest of the host.
+		assert.throws(() => GitGraphView.restore(panel, extensionPath, null, null, null, null, null), error => error === applied);
+		for (const resource of ['resources/fonts.css', 'resources/fonts/GeistMono-wght.woff2', 'resources/fonts/GeistMono-Italic-wght.woff2']) {
+			const target = path.join(extensionPath, resource);
+			assert.ok(options.localResourceRoots.some(root => {
+				const relative = path.relative(root.fsPath, target);
+				return !path.isAbsolute(relative) && relative !== '..' && !relative.startsWith('..' + path.sep);
+			}), `Restored webview blocks ${resource}`);
+		}
+	});
+});
 
 /** A minimal commit, with only the fields `remoteRefsFollowUpChanged` looks at. */
 function commit(hash, remotes = []) {

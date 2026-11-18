@@ -21,8 +21,8 @@ body:not(.mobileMode) #cdv.inline .cdvHeightResize { background-color:var(--cdv-
 .cdvAuthor a { font-size:12px; }
 .cdvMeta { margin-top:3px; font:11px/1.5 var(--gg-font-sans); color:var(--vscode-descriptionForeground); }
 .cdvIdentity .cdvmAvatar { width:28px; height:28px; font-size:11px; }
-.cdvHashButton, .cdvParentButton { display:inline-block; max-width:100%; box-sizing:border-box; padding:3px 7px; border:1px solid var(--cdv-line); border-radius:5px; background-color:var(--cdv-surface); font-family:var(--gg-font-sans); font-size:inherit; line-height:1.4; overflow-wrap:anywhere; vertical-align:middle; user-select:text; }
-.cdvHashButton { cursor:pointer; display:inline-flex; flex:none; align-items:center; gap:6px; color:var(--vscode-descriptionForeground); font-size:11px; }
+.cdvHashButton, .cdvParentButton { display:inline-block; max-width:100%; box-sizing:border-box; padding:3px 7px; border:1px solid var(--cdv-line); border-radius:5px; background-color:var(--cdv-surface); font-family:"Geist Mono", ui-monospace, monospace; font-size:11px; font-weight:400; line-height:1.4; overflow-wrap:anywhere; vertical-align:middle; user-select:text; }
+.cdvHashButton { cursor:pointer; display:inline-flex; flex:none; align-items:center; gap:6px; color:var(--vscode-descriptionForeground); }
 .cdvHashButton svg { width:12px; height:12px; }
 .cdvStatusRule { height:0; border-top:1px solid var(--cdv-line); margin:12px 16px 0; }
 .cdvStatusEnd { margin:12px 0 0; }
@@ -53,7 +53,18 @@ body:not(.mobileMode) #cdvFiles .fileTreeChevron svg,
 body:not(.mobileMode) #cdvFiles .fileTreeFolderGlyph { position:static; width:14px; height:14px; color:var(--vscode-descriptionForeground); }
 body:not(.mobileMode) #cdvFiles .gitFolderName,
 body:not(.mobileMode) #cdvFiles .gitFileName { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-body:not(.mobileMode) #cdvFiles .fileTreeFolderCount { flex:none; margin-left:auto; color:var(--vscode-descriptionForeground); font-size:11px; }
+body:not(.mobileMode) #cdvFiles .fileTreeFolderCount,
+body:not(.mobileMode) #cdvFiles .fileTreeFileAddDel,
+body:not(.mobileMode) #cdvFiles .fileTreeFileAdd,
+body:not(.mobileMode) #cdvFiles .fileTreeFileDel {
+	font-family:"Geist Mono", ui-monospace, monospace;
+	font-size:11px;
+	font-weight:400;
+	font-style:normal;
+	line-height:1.4;
+	font-variant-numeric:tabular-nums;
+}
+body:not(.mobileMode) #cdvFiles .fileTreeFolderCount { flex:none; margin-left:auto; color:var(--vscode-descriptionForeground); }
 body:not(.mobileMode) #cdvFiles .fileTreeFile { display:flex; align-items:center; flex:1 1 auto; min-width:0; gap:8px; }
 body:not(.mobileMode) #cdvFiles .fileTreeFileIcon { display:none; }
 body:not(.mobileMode) #cdvFiles .fileTreeStatus { display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:16px; border-radius:4px; font:600 10px var(--gg-font-mono); color:var(--vscode-textLink-foreground); background:rgba(22,132,184,.16); }
@@ -65,7 +76,7 @@ body:not(.mobileMode) #cdvFiles .fileTreeFileAction,
 body:not(.mobileMode) #cdvFiles #cdvLastFileViewed { display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:20px; margin-left:0; }
 body:not(.mobileMode) #cdvFiles .fileTreeFileAction svg,
 body:not(.mobileMode) #cdvFiles #cdvLastFileViewed svg { position:static; flex:none; width:16px; }
-body:not(.mobileMode) #cdvFiles .fileTreeFileAddDel { display:inline-flex; flex:none; order:1; gap:8px; margin-left:4px; font:11px var(--gg-font-mono); }
+body:not(.mobileMode) #cdvFiles .fileTreeFileAddDel { display:inline-flex; flex:none; order:1; gap:8px; margin-left:4px; }
 body:not(.mobileMode) #cdvFiles .fileTreeFileAdd,
 body:not(.mobileMode) #cdvFiles .fileTreeFileDel { padding:0; }
 body.mobileMode #cdvFiles .fileTreeFolderIcon { width:40px !important; }
