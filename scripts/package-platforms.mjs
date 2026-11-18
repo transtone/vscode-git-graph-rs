@@ -171,7 +171,7 @@ async function main() {
 				// detection is dead weight that fails packaging on an untidy npm tree.
 				execFileSync(process.execPath, [
 					vsceEntry, 'package', '--no-dependencies', '--target', target,
-					'--baseContentUrl', 'https://example.invalid', '--baseImagesUrl', 'https://example.invalid',
+					'--baseContentUrl', 'https://github.com/transtone/ya-git-graph/blob/main', '--baseImagesUrl', 'https://raw.githubusercontent.com/transtone/ya-git-graph/main',
 					'--out', outFile
 				], { cwd: root, stdio: 'inherit' });
 				produced.push(outFile);

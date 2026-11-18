@@ -1,13 +1,17 @@
-# Git Graph (Rust)
+# YA Git Graph
 
-[![Visual Studio Marketplace version](https://vsmarketplacebadges.dev/version/neophack.git-graph-rs.svg)](https://marketplace.visualstudio.com/items?itemName=neophack.git-graph-rs)
-[![Installs](https://vsmarketplacebadges.dev/installs/neophack.git-graph-rs.svg)](https://marketplace.visualstudio.com/items?itemName=neophack.git-graph-rs)
-[![Open VSX Downloads](https://img.shields.io/open-vsx/dt/neophack/git-graph-rs.svg)](https://open-vsx.org/extension/neophack/git-graph-rs)
-[![Build and test](https://github.com/neophack/vscode-git-graph-rs/actions/workflows/native-build.yml/badge.svg)](https://github.com/neophack/vscode-git-graph-rs/actions/workflows/native-build.yml)
-[![codecov](https://codecov.io/gh/neophack/vscode-git-graph-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/neophack/vscode-git-graph-rs)
+A VS Code Git graph extension with an in-process Rust backend and a compact commit-history
+interface. Browse branches, tags and stashes, inspect commit details and file changes, and
+work with remotes and code reviews.
 
-A rewrite of the Git Graph VS Code extension with its Git backend in Rust, loaded into the
-extension host as a Node-API addon through [napi-rs] and reading repositories with [gix].
+- **Project:** [transtone/ya-git-graph](https://github.com/transtone/ya-git-graph)
+- **Marketplace:** [YA Git Graph](https://marketplace.visualstudio.com/items?itemName=wildgrid.ya-git-graph)
+- **VSIX downloads:** [GitHub Releases](https://github.com/transtone/ya-git-graph/releases)
+- **Issues:** [Bug reports and feature requests](https://github.com/transtone/ya-git-graph/issues)
+- **Current package version:** `0.2.13`
+
+The Git backend is loaded into the extension host as a Node-API addon through [napi-rs] and
+reads repositories with [gix].
 
 The original extension answered every question by spawning a `git` process and parsing its
 output. This one reads the object database, the refs and the index directly, in-process, from a
@@ -16,23 +20,44 @@ view load, commit/stash/uncommitted details, comparisons, file contents and diff
 — is served by the Rust engine; anything the engine does not reach, and the whole write path
 (checkout, merge, rebase, push, …), goes through the `git` CLI behind the same interface.
 
-**Install** it from the
-[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=neophack.git-graph-rs)
-(search for "Git Graph RS") or [Open VSX](https://open-vsx.org/extension/neophack/git-graph-rs),
-or download a VSIX from [GitHub Releases](https://github.com/neophack/vscode-git-graph-rs/releases)
-and install it with `code --install-extension git-graph-rs-<version>.vsix`.
+## Install
 
-Bug reports, feature requests and questions go to
-[the issue tracker](https://github.com/neophack/vscode-git-graph-rs/issues).
+Download an available `ya-git-graph-<version>.vsix` from
+[GitHub Releases](https://github.com/transtone/ya-git-graph/releases), or build it locally
+using the [packaging instructions](#building-and-packaging). In VS Code, choose
+**Extensions → … → Install from VSIX…**, or install a downloaded/local package with:
 
-## Git Graph Studio
+```sh
+code --install-extension ./ya-git-graph-0.2.13.vsix
+```
 
-The engine in `native/core` also powers
-[Git Graph Studio](https://github.com/neophack/git-graph-studio), a standalone desktop app
-(Tauri 2 + TypeScript + Rust) shaped like a small VS Code — file explorer, source control,
-editor, terminal, extensions — whose Git Graph view is served by this extension's webview,
-unchanged. Reads cross the same engine; writes go through the `git` CLI, as they do here.
-It installs a `ggs` command, like VS Code's `code`.
+Local packaging writes the VSIX to the repository root. The display name is **YA Git Graph**;
+existing command IDs and settings retain the `git-graph-rs` prefix.
+
+## Recent UI updates (0.2.13)
+
+- **Dedicated branches/tags column.** References appear to the left of the graph in a resizable
+  column, initially 150px wide. Custom widths are saved. The first reference is visible in the
+  row; `+N` counts the remaining references and the hover list shows their full labels. Local
+  and remote branches are separate entries, including matching names such as `main` and
+  `origin/main`.
+- **Clearer graph and table layout.** The desktop table shows references, graph, message and
+  relative date, with no visible header or separate author/hash columns. Reference labels are
+  vertically centered and connected to their graph nodes. Filled labels use 2px corners;
+  message rows have a matching colored edge with 6px of space before the text. The uncommitted
+  row has no colored edge. Row highlights cover the message and date cells.
+- **Independent graph scrolling.** Wide graphs have their own horizontal scrollbar while the
+  message and date stay in place. Vertical scrolling keeps graph nodes aligned with commit
+  rows through virtual-window changes.
+- **Commit details without automatic scrolling.** Opening details preserves the page's scroll
+  position. The inline panel starts at the graph column. Author information is followed by a
+  metadata row with a copyable commit hash on the left and parent links on the right.
+- **Improved file list and tree.** Switch between list and tree views, expand folders with
+  descendant counts, and see status badges and progressively loaded additions/deletions.
+  Filename tooltips show the full repository-relative path. Compact file-action icons sit
+  before the right-aligned diff counts, with a separate gap to prevent overlap.
+- **Quieter row actions.** The file-change shortcut overlays the row without shifting its text,
+  has a transparent background, and is hidden on the row whose details are already open.
 
 ## What this fork adds
 
@@ -86,7 +111,9 @@ Both sides are driven through the same `GitBackend` interface with the same argu
 runs after an untimed warm-up (the engine's caches and the OS page cache are warm, so this is the
 steady-state interaction, not the first cold open).
 
-Environment: Windows 11, Intel i7-14650HX, Node 24, git 2.50.1, extension 1.0.23.
+Upstream benchmark environment: Windows 11, Intel i7-14650HX, Node 24, git 2.50.1, extension
+1.0.23. These historical results are retained for reference; they are not measurements of the
+current YA Git Graph package.
 
 ### A real repository (129 commits, 23 tags, uncommitted changes in the working tree)
 
@@ -361,7 +388,14 @@ fixture it already built there; `--force` builds inside a non-empty directory an
 only be used once you've checked what's actually there. See `--help` for the size knobs
 (`--commits`, `--branches`, `--tags`, `--authors`, `--seed`) and `--timeout`.
 
-## Building
+## Building and packaging
+
+Clone this repository before building:
+
+```sh
+git clone git@github.com:transtone/ya-git-graph.git
+cd ya-git-graph
+```
 
 Requires Rust 1.85+ and Node 18+. There is no node-gyp, no Python and no download of Node
 headers: napi-rs resolves the Node-API symbols at load time.
@@ -375,6 +409,20 @@ npm run bench -- <repo-path>     # one view load, shipped backend vs git CLI
 npm run bench:all -- <repo-path> # every read operation, one table row each (--json for machines)
 npm run lint                     # clippy + rustfmt
 ```
+
+To package the extension after building the native addon (or when a suitable binary is already
+present under `native/`):
+
+```sh
+npm run compile-src
+npm run compile-web
+npm run package
+```
+
+The output is `ya-git-graph-<version>.vsix` in the repository root; at version `0.2.13` it is
+`ya-git-graph-0.2.13.vsix`. These commands do not change the version or install the extension.
+Repackaging the same version replaces the same-named VSIX. A local package includes the native
+binaries currently present under `native/`; missing platforms use the Git CLI fallback.
 
 `build-and-install.bat` (Windows) and `./build-and-install.sh` (macOS/Linux) run the whole
 chain — addon, TypeScript, webview, tests — package the VSIX and install it into VS Code,
@@ -414,24 +462,49 @@ write operations report that they need Git.
 
 ## Releasing
 
-[`native-build.yml`](.github/workflows/native-build.yml) builds one binary per platform on native
-runners and assembles them into `native/<platform>/git-graph.node`, the layout the extension
-loads from. [`release.yml`](.github/workflows/release.yml) is triggered by hand
-(`gh workflow run release.yml -f version=vX.Y.Z`, add `-f full=true` for all six platforms); it
-runs the whole pipeline and publishes a GitHub Release with two kinds of VSIX, nothing being
-published unless every test passed:
+Packages for this project belong on
+[transtone/ya-git-graph Releases](https://github.com/transtone/ya-git-graph/releases).
+Build and validate the VSIX using the commands above, then attach it to the matching release.
 
-- **the universal VSIX** (`git-graph-rs-<version>.vsix`) — every built engine in one package,
-  `engines.vscode ^1.38.0`; the engine is picked at load time;
-- **the per-platform VSIXs** (`git-graph-rs-<version>-<platform>.vsix`) — one engine each, built
-  with `vsce package --target` and stamped `^1.61.0`, since only 1.61+ editors request
-  platform-specific packages. Editors older than 1.61, and platforms with no package of their own,
-  receive the universal VSIX as the Marketplace's documented fallback.
+- **Universal package:** `ya-git-graph-<version>.vsix`, containing the native binaries available
+  at packaging time, with the package's configured minimum VS Code version (`^1.38.0`).
+- **Per-platform packages:** `node scripts/package-platforms.mjs` creates
+  `ya-git-graph-<version>-<platform>.vsix` for each available native binary. These packages
+  require VS Code `^1.61.0`; for example, the Windows x64 package uses the suffix
+  `win32-x64-msvc`.
 
-Publishing to the Marketplace is `vsce publish --packagePath <file>` per asset, the universal VSIX
-first so the fallback exists, then each per-platform one.
+The native build recipe is in [`native-build.yml`](.github/workflows/native-build.yml).
+
+### Publishing to VS Code Marketplace
+
+Create a publisher at the
+[Visual Studio Marketplace publisher portal](https://marketplace.visualstudio.com/manage).
+Use its **publisher ID**, not its display name or a GitHub username, in `package.json`:
+
+```sh
+npm pkg set publisher=wildgrid
+npm run compile-src
+npm run compile-web
+npm run package
+npx --no-install vsce login wildgrid
+npx --no-install vsce publish --packagePath ./ya-git-graph-0.2.13.vsix
+```
+
+Enter the publishing credential in your own terminal when `vsce login` prompts for it. For a
+Personal Access Token, follow the
+[VS Code publishing guide](https://code.visualstudio.com/api/working-with-extensions/publishing-extension)
+and grant the Marketplace **Manage** scope. You can also upload the generated VSIX through
+the publisher portal instead of using the publish command.
+
+The extension ID is `wildgrid.ya-git-graph`. Each published version is immutable: later
+updates under the same ID need a higher version. Rebuild the VSIX after changing the publisher
+so the uploaded package carries the correct identity.
 
 ## License & credits
+
+YA Git Graph builds on
+[Git Graph (Rust)](https://github.com/neophack/vscode-git-graph-rs) and the original
+[Git Graph](https://github.com/mhutchie/vscode-git-graph).
 
 The Rust engine (`native/`), the build scripts, the custom-made icons and the `git-graph-rs-*`
 assets are original to this project and released under the [MIT license](LICENSE).

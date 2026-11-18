@@ -1767,10 +1767,6 @@ class GitGraphView {
 			refName = escapeHtml(branchLabels.heads[j].name);
 			refActive = branchLabels.heads[j].name === this.gitBranchHead;
 			refHtml = '<span class="gitRef head' + (refActive ? ' active' : '') + '" data-name="' + refName + '"><span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span>' + (refActive ? SVG_ICONS.check : SVG_ICONS.monitor);
-			for (k = 0; k < branchLabels.heads[j].remotes.length; k++) {
-				remoteName = escapeHtml(branchLabels.heads[j].remotes[k]);
-				refHtml += '<span class="gitRefHeadRemote" data-remote="' + remoteName + '" data-fullref="' + escapeHtml(branchLabels.heads[j].remotes[k] + '/' + branchLabels.heads[j].name) + '">' + remoteName + SVG_ICONS.cloud + '</span>';
-			}
 			refHtml += '</span>';
 			refBranches = refActive ? refHtml + refBranches : refBranches + refHtml;
 			if (refActive) branchCheckedOutAtCommit = this.gitBranchHead;
@@ -3584,28 +3580,7 @@ function runAction(msg: GG.RequestMessage, action: string) {
 }
 
 function getBranchLabels(heads: ReadonlyArray<string>, remotes: ReadonlyArray<GG.GitCommitRemote>) {
-	let headLabels: { name: string; remotes: string[] }[] = [], headLookup: { [name: string]: number } = {}, remoteLabels: ReadonlyArray<GG.GitCommitRemote>;
-	for (let i = 0; i < heads.length; i++) {
-		headLabels.push({ name: heads[i], remotes: [] });
-		headLookup[heads[i]] = i;
-	}
-	if (initialState.config.referenceLabels.combineLocalAndRemoteBranchLabels) {
-		let remainingRemoteLabels = [];
-		for (let i = 0; i < remotes.length; i++) {
-			if (remotes[i].remote !== null) { // If the remote of the remote branch ref is known
-				let branchName = remotes[i].name.substring(remotes[i].remote!.length + 1);
-				if (typeof headLookup[branchName] === 'number') {
-					headLabels[headLookup[branchName]].remotes.push(remotes[i].remote!);
-					continue;
-				}
-			}
-			remainingRemoteLabels.push(remotes[i]);
-		}
-		remoteLabels = remainingRemoteLabels;
-	} else {
-		remoteLabels = remotes;
-	}
-	return { heads: headLabels, remotes: remoteLabels };
+	return { heads: heads.map(name => ({ name, remotes: [] as string[] })), remotes };
 }
 
 function findCommitElemWithId(id: number | null) {

@@ -23,6 +23,29 @@ it('resizes and remembers the refs column without freezing the automatic graph l
  } finally { h.window.close(); }
 });
 
+it('lists local and remote branches independently in +N even when the old combine setting is enabled', async () => {
+ const h=await bootView(5);
+ try {
+  h.window.initialState.config.referenceLabels.combineLocalAndRemoteBranchLabels=true;
+  h.state.history[0].heads=['main','feature/test'];
+  h.state.history[0].remotes=[{name:'origin/main',remote:'origin'},{name:'upstream/main',remote:'upstream'},{name:'origin/feature/test',remote:'origin'}];
+  h.state.history[0].tags=[{name:'v1',annotated:false}];
+  h.document.getElementById('refreshBtn').click(); await h.pump();
+  const group=h.rows()[0].querySelector('.refsGroup');
+  assert.equal(group.querySelector(':scope > .gitRef').dataset.name,'main');
+  assert.equal(group.querySelector('.gitRefHeadRemote'),null);
+  assert.equal(group.querySelector('.refsOverflow').textContent,'+5');
+  assert.deepEqual([...group.querySelectorAll('.refsMore > .gitRef')].map(ref=>ref.dataset.name),['main','feature/test','origin/main','upstream/main','origin/feature/test','v1']);
+  const remote=group.querySelector('.refsMore .gitRef.remote[data-name="origin/main"]');
+  assert.equal(remote.dataset.remote,'origin');
+  remote.querySelector('svg').dispatchEvent(new h.window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:200,clientY:150}));
+  const menu=h.document.querySelector('.contextMenu');
+  assert.ok(menu);
+  assert.match(menu.textContent,/origin\/main/);
+  assert.ok(!menu.textContent.includes('Rename Branch'));
+ } finally { h.window.close(); }
+});
+
 it('renders a hover expansion for a single ref without a +N indicator', async () => {
  const h = await bootView(5);
  try {

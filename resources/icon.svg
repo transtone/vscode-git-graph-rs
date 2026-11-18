@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">YA Git Graph</title>
+  <desc id="desc">Cyan and violet commit branches form a Y on a transparent background.</desc>
+  <defs>
+    <linearGradient id="trunk" x1="76" y1="62" x2="128" y2="196" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08b6c6"/>
+      <stop offset="1" stop-color="#168ac8"/>
+    </linearGradient>
+    <linearGradient id="branch" x1="180" y1="62" x2="128" y2="142" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9364e8"/>
+      <stop offset="1" stop-color="#647ee3"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M76 62v27c0 12 5 20 15 28l37 27v52" stroke="url(#trunk)"/>
+    <path d="M180 62v27c0 12-5 20-15 28l-37 27" stroke="url(#branch)"/>
+  </g>
+  <g fill="#fff" stroke-width="8">
+    <circle cx="76" cy="62" r="14" stroke="#08b6c6"/>
+    <circle cx="180" cy="62" r="14" stroke="#9364e8"/>
+    <circle cx="128" cy="196" r="15" stroke="#168ac8"/>
+  </g>
+  <circle cx="128" cy="144" r="7" fill="#fff"/>
+</svg>

@@ -6,15 +6,15 @@
 	"license": "MIT",
 	"author": "wildgrid",
 	"private": true,
-	"publisher": "neophack",
+	"publisher": "wildgrid",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/neophack/vscode-git-graph-rs.git"
+		"url": "https://github.com/transtone/ya-git-graph.git"
 	},
 	"bugs": {
-		"url": "https://github.com/neophack/vscode-git-graph-rs/issues"
+		"url": "https://github.com/transtone/ya-git-graph/issues"
 	},
-	"homepage": "https://github.com/neophack/vscode-git-graph-rs#readme",
+	"homepage": "https://github.com/transtone/ya-git-graph#readme",
 	"engines": {
 		"vscode": "^1.38.0",
 		"node": ">=18"

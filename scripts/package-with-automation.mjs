@@ -8,4 +8,4 @@
 import { runVsce, withAutomationContributions } from './automation-packaging.mjs';
 
 // --no-dependencies: same reason as package-without-automation.mjs.
-await withAutomationContributions(() => runVsce(['package', '--no-dependencies', '--baseContentUrl', 'https://example.invalid', '--baseImagesUrl', 'https://example.invalid']));
+await withAutomationContributions(() => runVsce(['package', '--no-dependencies', '--baseContentUrl', 'https://github.com/transtone/ya-git-graph/blob/main', '--baseImagesUrl', 'https://raw.githubusercontent.com/transtone/ya-git-graph/main']));

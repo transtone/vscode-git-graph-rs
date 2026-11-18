@@ -11,4 +11,4 @@ import { runVsce, withAutomationExcluded } from './automation-packaging.mjs';
 // --no-dependencies: node_modules/** is vscodeignored (the package is self-contained), so vsce's
 // npm dependency detection is dead weight that fails packaging whenever the local npm tree is
 // merely untidy (e.g. extraneous packages make `npm list` exit nonzero).
-await withAutomationExcluded(() => runVsce(['package', '--no-dependencies', '--baseContentUrl', 'https://example.invalid', '--baseImagesUrl', 'https://example.invalid']));
+await withAutomationExcluded(() => runVsce(['package', '--no-dependencies', '--baseContentUrl', 'https://github.com/transtone/ya-git-graph/blob/main', '--baseImagesUrl', 'https://raw.githubusercontent.com/transtone/ya-git-graph/main']));
