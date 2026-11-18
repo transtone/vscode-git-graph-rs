@@ -1,19 +1,4 @@
-/* Angkor-style lane colours for local and remote branch labels, on desktop and mobile. */
-body #view #commitTable .gitRef.head, body #view #commitTable .gitRef.remote {
-	color:var(--git-graph-color);
-	background-color:color-mix(in srgb, var(--git-graph-color) 16%, transparent);
-	border:1px solid color-mix(in srgb, var(--git-graph-color) 45%, transparent);
-	box-shadow:none;
-}
-body #view #commitTable .gitRef.head:hover, body #view #commitTable .gitRef.remote:hover {
-	background-color:color-mix(in srgb, var(--git-graph-color) 24%, transparent);
-	border-color:color-mix(in srgb, var(--git-graph-color) 65%, transparent);
-}
-body #view #commitTable .gitRef.head.active {
-	color:var(--vscode-editor-background);
-	background-color:var(--git-graph-color);
-	border-color:var(--git-graph-color);
-}
+/* Branch label icon and remote-name details; shared label colours live in z-table.css. */
 body #view #commitTable .gitRef.head > svg, body #view #commitTable .gitRef.remote > svg {
 	color:inherit;
 	background-color:transparent;

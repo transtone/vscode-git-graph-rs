@@ -8,7 +8,7 @@
 	margin:0;
 	padding:4px 0;
 	border-radius:5px;
-	z-index:13;
+	z-index:100;
 	-webkit-user-select:none;
 	user-select:none;
 	transform-origin:top left;

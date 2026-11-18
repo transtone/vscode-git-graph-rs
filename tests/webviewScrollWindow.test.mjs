@@ -34,6 +34,24 @@ function jumpSync(h, scrollTop) {
 }
 
 describe('fast scrolling keeps the newly exposed rows rendered (windowed rendering)', () => {
+	it('does not rebuild the graph for every row while the viewport remains buffered', async () => {
+		const h = await bootView(500);
+		await h.scrollTo(50);
+		const graph = h.document.querySelector('#commitGraph svg');
+		let replacements = 0;
+		const observer = new h.window.MutationObserver((records) => {
+			replacements += records.filter((record) => record.target === graph && record.removedNodes.length > 0).length;
+		});
+		observer.observe(graph, { childList: true });
+		for (let row = 51; row <= 56; row++) {
+			jumpSync(h, row * ROW_HEIGHT);
+			await new Promise((resolve) => setTimeout(resolve, 30));
+		}
+		observer.disconnect();
+		assert.ok(replacements <= 2, 'six buffered rows should require at most two graph rebuilds, got ' + replacements);
+		const extent = renderedExtent(h);
+		assert.ok(extent.first <= 56 && extent.last >= 56 + Math.ceil(VIEWPORT_HEIGHT / ROW_HEIGHT));
+	});
 	it('a jump beyond the fixed buffer re-renders the window synchronously, inside the scroll event', async () => {
 		const h = await bootView(300);
 		// settle at a known position first

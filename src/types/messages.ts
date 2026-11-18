@@ -766,6 +766,8 @@ export const enum RebaseActionOn {
 	Branch = 'Branch',
 	Commit = 'Commit'
 }
+
+
 export interface RequestRebase extends RepoRequest {
 	readonly command: 'rebase';
 	readonly obj: string;
@@ -1091,6 +1093,7 @@ export type RequestMessage =
 	| RequestPushBranch
 	| RequestPushStash
 	| RequestPushTag
+
 	| RequestRebase
 	| RequestReflog
 	| RequestRenameBranch
@@ -1180,6 +1183,7 @@ export type ResponseMessage =
 	| ResponsePushBranch
 	| ResponsePushStash
 	| ResponsePushTag
+
 	| ResponseRebase
 	| ResponseRefresh
 	| ResponseReflog

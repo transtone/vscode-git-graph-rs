@@ -46,15 +46,15 @@ body.unableToLoad h2, body.unableToLoad h3, body.unableToLoad p{
 }
 
 body #view{
-	display:block;
+	display:flex;
+	flex-direction:column;
 	position:fixed;
 	top:0;
 	left:0;
 	right:0;
 	bottom:0;
 	background-color:var(--vscode-editor-background);
-	overflow-x:hidden;
-	overflow-y:auto;
+	overflow:hidden;
 	/* The view manages its own scroll position across re-renders (anchoring the commit that sits
 	 * at the top of the viewport): Chromium's native scroll anchoring would adjust scrollTop a
 	 * second time after those explicit adjustments - on top of our compensation - visibly jumping
@@ -81,7 +81,14 @@ code{
 
 #content{
 	position:relative;
+	min-width:0;
+	min-height:0;
+	overflow-x:hidden;
+	overflow-y:auto;
+	flex:1 1 auto;
+	overflow-anchor:none;
 }
+#headerRow, #conflictBanner, #footer { flex:none; }
 
 
 /* Overlays */
@@ -111,6 +118,17 @@ code{
 	top:0;
 	z-index:2;
 	pointer-events:none;
+	overflow:hidden;
+}
+#graphHorizontalScroll{
+	flex:none;
+	height:12px;
+	max-width:100%;
+	overflow-x:auto;
+	overflow-y:hidden;
+}
+#graphHorizontalScroll > div{
+	height:1px;
 }
 #commitGraph circle{
 	pointer-events:all;
@@ -226,6 +244,9 @@ code{
 	width:100%;
 	border-collapse:collapse;
 }
+body:not(.mobileMode) #commitTable table{
+	min-width:760px;
+}
 #commitTable table, #commitTable tbody, #commitTable tr, #commitTable th, #commitTable td{
 	padding:0;
 	margin:0;
@@ -280,11 +301,11 @@ code{
 #commitTable.fixedLayout table{
 	table-layout:fixed;
 }
-#commitTable.autoLayout.limitGraphWidth td:first-child, #commitTable.autoLayout.limitGraphWidth th:first-child{
+#commitTable.autoLayout.limitGraphWidth td.graphCol, #commitTable.autoLayout.limitGraphWidth th.graphCol{
 	max-width:var(--limitGraphWidth);
 	box-sizing:border-box;
 }
-#commitTable.autoLayout td:nth-child(2), #commitTable.autoLayout th:nth-child(2){
+#commitTable.autoLayout td.messageCol, #commitTable.autoLayout th.messageCol{
 	width:100%;
 	max-width:0;
 }
@@ -324,6 +345,12 @@ code{
 
 .tableColHeader{
 	position:relative;
+}
+#commitTable #tableColHeaders {
+	position:sticky;
+	top:0;
+	z-index:11;
+	background-color:var(--vscode-editor-background);
 }
 #tableColHeaders.sticky .tableColHeader {
 	position: sticky;
@@ -427,16 +454,8 @@ table { border-collapse: collapse; }
 	border-radius:4px;
 }
 
-#cdvFileViewTypeTree{
-	border-radius:4px 4px 0 0;
-	margin-bottom:0;
-}
-#cdvFileViewTypeList{
-	border-radius:0 0 4px 4px;
-	margin-top:0;
-}
 .cdvFileViewTypeBtn{
-	background-color:rgba(128,128,128,0.125);
+	border-radius:4px;
 }
 
 #cdvExternalDiff{
@@ -837,16 +856,16 @@ svg.openFolderIcon, svg.closedFolderIcon, svg.fileIcon{
 	margin-top:7px;
 	cursor:help;
 }
-#commitTable tr.commit{
+#commitTable tr.commit > :is(.messageCol, .dateCol){
 	transition:background-color var(--gg-dur-fast) var(--gg-ease);
 }
-#commitTable tr.commit:hover, #commitTable tr.commit.contextMenuActive, #commitTable tr.commit.findCurrentCommit:hover, #commitTable tr.commit.graphVertexActive, #commitTable tr.commit.dialogActive{
+#commitTable tr.commit:is(:hover, .contextMenuActive, .graphVertexActive, .dialogActive) > :is(.messageCol, .dateCol){
 	background-color:rgba(128,128,128,0.15);
 }
-#commitTable tr.commit.commitDetailsOpen{
+#commitTable tr.commit.commitDetailsOpen > :is(.messageCol, .dateCol){
 	background-color:rgba(128,128,128,0.25);
 }
-#commitTable tr.commit.commitDetailsOpen:hover, #commitTable tr.commit.commitDetailsOpen.contextMenuActive, #commitTable tr.commit.commitDetailsOpen.dialogActive, #commitTable tr.commit.commitDetailsOpen.graphVertexActive{
+#commitTable tr.commit.commitDetailsOpen:is(:hover, .contextMenuActive, .dialogActive, .graphVertexActive) > :is(.messageCol, .dateCol){
 	background-color:rgba(128,128,128,0.35);
 }
 
@@ -1368,31 +1387,25 @@ body.tagLabelsRightAligned .tagsWrapper {
 	user-select:none;
 }
 
-/* The "Open Changes" action shown at the end of each commit's description (the same action as
-   VS Code's built-in Source Control Graph): hidden by default - and taking up NO space while
-   hidden (width:0), so a truncated description always runs to its cell's boundary - and shown,
-   at its full 20x20 size (the row's text giving up exactly that much room), while the row is
-   hovered or otherwise active, styled like a VS Code inline action - a codicon-sized 20x20 hit
-   area around the 16px icon, with the list hover background while it is itself hovered. The
-   button stays in the flow even at width:0 (rather than display:none) so its auto margin keeps
-   pushing a following right-aligned tagsWrapper to the row's right edge while hidden. */
+/* The action overlays the right edge without changing the description's layout. */
 #commitTable tr.commit span.description .openChangesBtn {
-	flex-shrink:0;
-	align-self:center;
-	/* push to the right edge of the row, rather than sitting right after the message text */
-	margin-left:auto;
+	position:absolute;
+	right:4px;
+	top:50%;
+	transform:translateY(-50%);
 	box-sizing:border-box;
 	display:inline-flex;
 	align-items:center;
 	justify-content:center;
-	width:0;
+	width:20px;
 	height:20px;
 	overflow:hidden;
 	cursor:pointer;
 	opacity:0;
 	pointer-events:none;
 	border-radius:5px;
-	transition:background-color var(--gg-dur-fast) var(--gg-ease), transform 80ms var(--gg-ease);
+	background-color:transparent;
+	transition:transform 80ms var(--gg-ease);
 	-webkit-user-select:none;
 	user-select:none;
 }
@@ -1406,20 +1419,18 @@ body.tagLabelsRightAligned .tagsWrapper {
 #commitTable tr.commit:hover span.description .openChangesBtn,
 #commitTable tr.commit.contextMenuActive span.description .openChangesBtn,
 #commitTable tr.commit.graphVertexActive span.description .openChangesBtn,
-#commitTable tr.commit.dialogActive span.description .openChangesBtn,
-#commitTable tr.commit.commitDetailsOpen span.description .openChangesBtn {
-	width:20px;
+#commitTable tr.commit.dialogActive span.description .openChangesBtn {
 	opacity:1;
 	pointer-events:auto;
 }
-#commitTable tr.commit span.description .openChangesBtn:hover {
-	background-color:var(--vscode-list-hoverBackground, rgba(128,128,128,0.25));
+#commitTable tr.commit.commitDetailsOpen span.description .openChangesBtn {
+	display:none;
 }
 #commitTable tr.commit span.description .openChangesBtn:hover svg {
 	fill-opacity:1;
 }
 #commitTable tr.commit span.description .openChangesBtn:active {
-	transform:scale(0.88);
+	transform:translateY(-50%) scale(0.88);
 }
 #commitTable tr.commit span.description .openChangesBtn:focus-visible {
 	outline:1px solid var(--vscode-focusBorder);

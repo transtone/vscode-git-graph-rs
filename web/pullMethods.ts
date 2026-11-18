@@ -25,11 +25,11 @@ function getPullMethodActions(view: GitGraphView, remote: string, target: Dialog
 		visible: true,
 		onClick: () => runAction({ command: 'fetch', repo, name: null, prune: view.config.fetchAndPrune, pruneTags: view.config.fetchAndPruneTags }, strings.pullFetchAll)
 	}, {
-		title: formatStr(strings.pullRebaseCurrentOnBranch, targetRef),
+		title: formatStr(strings.pullRebaseCurrentOnBranch, current!, targetRef),
 		visible: current !== null && targetRef !== current,
 		onClick: () => rebaseAction(view, targetRef, targetRef, GG.RebaseActionOn.Branch, target)
 	}, {
-		title: formatStr(strings.pullFastForwardBranch, targetRef),
+		title: formatStr(strings.pullFastForwardBranch, targetRef, current ?? ''),
 		visible: true,
 		disabled: !canFastForward,
 		onClick: () => {

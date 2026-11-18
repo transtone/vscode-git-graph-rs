@@ -25,7 +25,7 @@ import { describe, it } from 'node:test';
 import { bootView } from './webviewHarness.mjs';
 
 const headerTitles = (h) => Array.from(h.document.querySelectorAll('#tableColHeaders th')).map((th) => th.textContent);
-const WIDE_HEADER = ['Graph', 'Message', 'Author', 'Hash', 'Date'];
+const WIDE_HEADER = ['Branches / Tags', 'Graph', 'Message', 'Date'];
 const NARROW_HEADER = ['Graph', 'Message'];
 
 /** Emulate a view width: jsdom has no layout engine, so the harness stubs clientWidth (1200). */
@@ -69,11 +69,11 @@ describe('the narrow window (mobileAdaptation) layout', () => {
 		await h.pump();
 
 		assert.deepEqual(headerTitles(h), WIDE_HEADER, 'all columns stay visible');
-		assert.ok(h.rows().every((row) => row.querySelectorAll('td').length === 5), 'rows keep all five cells');
+		assert.ok(h.rows().every((row) => row.querySelectorAll('td').length === 4), 'rows keep all four cells');
 		assert.ok(!h.document.body.classList.contains('narrowWindow'), 'the narrow window body class is absent');
 	});
 
-	it('hides the Date, Author and Commit columns in a narrow view, and restores them when it widens', async () => {
+	it('moves date and references into the message in a narrow view, and restores their columns when it widens', async () => {
 		const h = await bootView(300);
 		setViewWidth(h, 400);
 		const config = clonedConfig(h);
@@ -81,7 +81,7 @@ describe('the narrow window (mobileAdaptation) layout', () => {
 		h.dispatch({ command: 'configChanged', config: config });
 		await h.pump();
 
-		assert.deepEqual(headerTitles(h), NARROW_HEADER, 'the Date, Author and Commit columns are hidden');
+		assert.deepEqual(headerTitles(h), NARROW_HEADER, 'date and references use the compact message layout');
 		assert.ok(h.rows().every((row) => row.querySelectorAll('td').length === 2), 'rows carry only the graph and description cells');
 		assert.ok(h.document.body.classList.contains('narrowWindow'), 'the narrow window body class was set');
 
@@ -93,7 +93,7 @@ describe('the narrow window (mobileAdaptation) layout', () => {
 		await h.pump();
 
 		assert.deepEqual(headerTitles(h), WIDE_HEADER, 'all columns returned');
-		assert.ok(h.rows().every((row) => row.querySelectorAll('td').length === 5), 'rows carry all five cells again');
+		assert.ok(h.rows().every((row) => row.querySelectorAll('td').length === 4), 'rows carry all four cells again');
 		assert.ok(!h.document.body.classList.contains('narrowWindow'), 'the narrow window body class was cleared');
 	});
 

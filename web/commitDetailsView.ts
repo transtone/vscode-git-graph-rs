@@ -14,7 +14,7 @@ function loadCommitDetails(view: GitGraphView, commitElem: HTMLElement) {
 
 	commitElem.classList.add(CLASS_COMMIT_DETAILS_OPEN);
 
-	renderCommitDetailsView(view, false);
+	renderCommitDetailsView(view);
 
 	view.requestCommitDetails(commit.hash, false);
 
@@ -114,7 +114,7 @@ function showCommitDetails(view: GitGraphView, commitDetails: GG.GitCommitDetail
 
 
 
-	renderCommitDetailsView(view, refresh);
+	renderCommitDetailsView(view);
 
 }
 
@@ -210,7 +210,7 @@ function loadCommitComparison(view: GitGraphView, commitElem: HTMLElement, compa
 
 		compareWithElem.classList.add(CLASS_COMMIT_DETAILS_OPEN);
 
-		renderCommitDetailsView(view, false);
+		renderCommitDetailsView(view);
 
 		view.requestCommitComparison(commit.hash, compareWithCommit.hash, false);
 
@@ -241,7 +241,7 @@ function closeCommitComparison(view: GitGraphView, saveAndRequestCommitDetails: 
 
 			view.saveExpandedCommitLoading(expandedCommit.index, expandedCommit.commitHash, expandedCommit.commitElem, null, null);
 
-			renderCommitDetailsView(view, false);
+			renderCommitDetailsView(view);
 
 			view.requestCommitDetails(expandedCommit.commitHash, false);
 
@@ -294,7 +294,7 @@ function showCommitComparison(view: GitGraphView, commitHash: string, compareWit
 
 
 
-	renderCommitDetailsView(view, refresh);
+	renderCommitDetailsView(view);
 
 }
 
@@ -570,7 +570,7 @@ function applyLineCounts(view: GitGraphView, msg: GG.ResponseCommitFileCounts) {
 }
 
 
-function renderCommitDetailsView(view: GitGraphView, refresh: boolean) {
+function renderCommitDetailsView(view: GitGraphView) {
 
 	const expandedCommit = view.expandedCommit;
 
@@ -723,67 +723,13 @@ function renderCommitDetailsView(view: GitGraphView, refresh: boolean) {
 
 
 
-	elem.innerHTML = isDocked ? html : '<td><div class="cdvHeightResize"></div></td><td colspan="' + (view.getNumColumns() - 1) + '">' + html + '</td>';
+	elem.innerHTML = isDocked ? html : '<td colspan="1"></td><td colspan="' + (view.getNumColumns() - 1) + '">' + html + '</td>';
 
 	if (!expandedCommit.loading) setCdvDivider(view);
 
 	if (!isDocked) view.renderGraph();
 
 
-
-	if (!refresh) {
-
-		if (isDocked) {
-
-			let elemTop = view.getHeaderHeight() + expandedCommit.commitElem.offsetTop;
-
-			if (elemTop - 8 < view.viewElem.scrollTop) {
-
-				// Commit is above what is visible on screen
-
-				view.viewElem.scroll(0, elemTop - 8);
-
-			} else if (elemTop - view.viewElem.clientHeight + 32 > view.viewElem.scrollTop) {
-
-				// Commit is below what is visible on screen
-
-				view.viewElem.scroll(0, elemTop - view.viewElem.clientHeight + 32);
-
-			}
-
-		} else {
-
-			let elemTop = view.getHeaderHeight() + elem.offsetTop, cdvHeight = view.gitRepos[view.currentRepo].cdvHeight;
-
-			if (view.config.commitDetailsView.autoCenter) {
-
-				// Center Commit Detail View setting is enabled
-
-				// elemTop - commit height [24px] + (commit details view height + commit height [24px]) / 2 - (view height) / 2
-
-				view.viewElem.scroll(0, elemTop - 12 + (cdvHeight - view.viewElem.clientHeight) / 2);
-
-			} else if (elemTop - 32 < view.viewElem.scrollTop) {
-
-				// Commit Detail View is opening above what is visible on screen
-
-				// elemTop - commit height [24px] - desired gap from top [8px] < view scroll offset
-
-				view.viewElem.scroll(0, elemTop - 32);
-
-			} else if (elemTop + cdvHeight - view.viewElem.clientHeight + 8 > view.viewElem.scrollTop) {
-
-				// Commit Detail View is opening below what is visible on screen
-
-				// elemTop + commit details view height + desired gap from bottom [8px] - view height > view scroll offset
-
-				view.viewElem.scroll(0, elemTop + cdvHeight - view.viewElem.clientHeight + 8);
-
-			}
-
-		}
-
-	}
 
 
 
@@ -1313,14 +1259,16 @@ function renderDesktopCommitSummary(view: GitGraphView, expandedCommit: Expanded
 			: '<span class="cdvParentButton" title="' + full + '">' + abbrevCommit(parent) + '</span>';
 	}).join(', ');
 	const differentCommitter = details.committer !== details.author || details.committerEmail !== details.authorEmail || details.committerDate !== details.authorDate;
-	return '<div class="cdvDesktopStatus"><div class="cdvIdentity">' + getMobileAvatarHtml(details.author, expandedCommit.avatar)
+	const graphColor = getCommitGraphColor(view, expandedCommit);
+	return '<div class="cdvDesktopStatus"><div class="cdvIdentity">' + getMobileAvatarHtml(details.author, expandedCommit.avatar, graphColor)
 		+ '<div class="cdvStatusFields"><div class="cdvAuthor">' + person(details.author, details.authorEmail) + '</div>'
 		+ '<div class="cdvMeta" title="' + escapeHtml(formatLongDate(details.authorDate)) + '">' + formatShortDate(details.authorDate, true).formatted + ' · ' + escapeHtml(formatMediumDate(details.authorDate))
 		+ (differentCommitter ? ' · ' + formatStr(strings.cdvCommittedBy, person(details.committer, details.committerEmail)) : '')
 		+ (details.committerDate !== details.authorDate ? ' · ' + escapeHtml(formatMediumDate(details.committerDate)) : '')
 		+ (details.signature !== null ? ' ' + generateSignatureHtml(details.signature) : '') + '</div></div>'
+		+ '</div><div class="cdvStatusRule"></div><div class="cdvParentsRow">'
 		+ '<button type="button" class="cdvHashButton cdvValueMono" data-copy-hash="' + escapeHtml(details.hash) + '" title="' + escapeHtml(strings.menuCopyCommitHash + ': ' + details.hash) + '">' + abbrevCommit(details.hash) + SVG_ICONS.copy + '</button>'
-		+ '</div><div class="cdvStatusRule"></div><div class="cdvParentsRow"><span class="cdvParentsLabel">' + strings.cdvParentsLabel.replace(/<[^>]*>/g, '').replace(/\s*[:：]\s*$/, '') + '</span><span class="cdvValueMono">' + parents + '</span></div><div class="cdvStatusRule cdvStatusEnd"></div></div>'
+		+ '<div class="cdvParentsGroup"><span class="cdvParentsLabel">' + strings.cdvParentsLabel.replace(/<[^>]*>/g, '').replace(/\s*[:：]\s*$/, '') + '</span><span class="cdvValueMono">' + parents + '</span></div></div><div class="cdvStatusRule cdvStatusEnd"></div></div>'
 		+ '<div id="cdvDesktopMessage" class="cdvDesktopMessage" tabindex="0">' + renderCommitMessageBody(view, expandedCommit, details.body, textFormatter) + '</div>';
 }
 
@@ -1386,7 +1334,7 @@ function renderMobileCommitSummary(view: GitGraphView, expandedCommit: ExpandedC
 
 	return '<div class="cdvmHeader">'
 		+ '<div class="cdvmTitle">' + textFormatter.format(subject) + '</div>'
-		+ '<div class="cdvmByline">' + getMobileAvatarHtml(commitDetails.author, expandedCommit.avatar)
+		+ '<div class="cdvmByline">' + getMobileAvatarHtml(commitDetails.author, expandedCommit.avatar, getCommitGraphColor(view, expandedCommit))
 		+ '<span class="cdvmByText"><span class="cdvmAuthor">' + escapeHtml(commitDetails.author) + '</span><span class="cdvmDate" title="' + escapeHtml(formatLongDate(commitDetails.authorDate)) + '">' + formatMediumDate(commitDetails.authorDate) + '</span></span></div>'
 		+ '</div>'
 		+ (body !== '' || (view.config.markdown && hasMarkdown(commitDetails.body)) ? '<div class="cdvmMessage">' + renderCommitMessageBody(view, expandedCommit, body, textFormatter) + '</div>' : '')
@@ -1399,8 +1347,17 @@ function renderMobileCommitSummary(view: GitGraphView, expandedCommit: ExpandedC
 		+ '</div>';
 }
 
-/** A round avatar: the fetched one, else the author's initials on a colour derived from the name. */
-function getMobileAvatarHtml(name: string, avatar: string | null) {
+/** Resolve the expanded commit's graph lane colour from the rendered commit row. */
+function getCommitGraphColor(view: GitGraphView, expandedCommit: ExpandedCommit): string | null {
+	const colorIndex = Number(expandedCommit.commitElem?.dataset.color);
+	const colours = view.config.graph.colours;
+	return Number.isInteger(colorIndex) && colours.length > 0
+		? colours[colorIndex % colours.length]
+		: null;
+}
+
+/** A round avatar: the fetched one, else the author's initials on the graph lane colour. */
+function getMobileAvatarHtml(name: string, avatar: string | null, graphColor: string | null) {
 	if (avatar !== null) return '<span class="cdvmAvatar"><img src="' + avatar + '"></span>';
 	const words = name.trim().split(/\s+/).filter((w) => w !== '');
 	// A CJK name is written without spaces: its first character stands for it. (Code point ranges
@@ -1415,7 +1372,7 @@ function getMobileAvatarHtml(name: string, avatar: string | null) {
 			: words.slice(0, 2).map((w) => Array.from(w)[0]).join('').toUpperCase();
 	let hash = 0;
 	for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-	return '<span class="cdvmAvatar" style="--cdvm-avatar-hue:' + (Math.abs(hash) % 360) + '">' + escapeHtml(initials) + '</span>';
+	return '<span class="cdvmAvatar"' + (graphColor !== null ? ' style="--cdvm-avatar-color:' + escapeHtml(graphColor) + '"' : ' style="--cdvm-avatar-hue:' + (Math.abs(hash) % 360) + '"') + '>' + escapeHtml(initials) + '</span>';
 }
 
 /** The mobile sheet's "Files" section header: how many files changed, the line totals, the file view controls. */
@@ -1500,7 +1457,7 @@ function openFolders(view: GitGraphView, open: boolean) {
 
 			parent.classList.remove('closed');
 
-			sourceElem.children[0].innerHTML = SVG_ICONS.openFolder;
+			sourceElem.children[0].innerHTML = fileTreeFolderIconHtml(true);
 
 			parent.children[1].classList.remove('hidden');
 
@@ -1512,7 +1469,7 @@ function openFolders(view: GitGraphView, open: boolean) {
 
 			parent.classList.add('closed');
 
-			sourceElem.children[0].innerHTML = SVG_ICONS.closedFolder;
+			sourceElem.children[0].innerHTML = fileTreeFolderIconHtml(false);
 
 			parent.children[1].classList.add('hidden');
 
@@ -1757,7 +1714,7 @@ function makeCdvFileViewInteractive(view: GitGraphView) {
 
 		let isOpen = !parent.classList.contains('closed');
 
-		parent.children[0].children[0].innerHTML = isOpen ? SVG_ICONS.openFolder : SVG_ICONS.closedFolder;
+		parent.children[0].children[0].innerHTML = fileTreeFolderIconHtml(isOpen);
 
 		parent.children[1].classList.toggle('hidden');
 

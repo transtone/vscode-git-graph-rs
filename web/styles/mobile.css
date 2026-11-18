@@ -425,10 +425,9 @@ body.mobileMode .contextMenu .mobileMenuSwitch.on::after{
  * Line 2: [refs] author ...... hash
  * The row height is uniform (web/main.ts MOBILE_ROW_HEIGHT), which windowed rendering requires;
  * rows are separated by a hairline inset to the text, drawn as a shadow so it takes no height.
- * The column header row is collapsed to nothing rather than hidden: its graph cell still sets
- * the graph column's width. */
+ * All layouts collapse the header to zero height while retaining its column width anchors. */
 
-body.mobileMode #tableColHeaders > th{
+body #tableColHeaders > th{
 	height:0;
 	padding-top:0 !important;
 	padding-bottom:0 !important;
@@ -645,6 +644,12 @@ body.mobileMode #view{
 body.mobileMode #view::-webkit-scrollbar{
 	display:none;
 }
+body.mobileMode #content{
+	scrollbar-width:none;
+}
+body.mobileMode #content::-webkit-scrollbar{
+	display:none;
+}
 
 body.mobileMode #fastScroller{
 	display:block;
@@ -857,7 +862,7 @@ body.mobileMode #cdvLoading{
 	height:36px;
 	border-radius:50%;
 	overflow:hidden;
-	background-color:hsl(var(--cdvm-avatar-hue, 210), 52%, 46%);
+	background-color:var(--cdvm-avatar-color, hsl(var(--cdvm-avatar-hue, 210), 52%, 46%));
 	color:#fff;
 	font-size:14px;
 	font-weight:700;

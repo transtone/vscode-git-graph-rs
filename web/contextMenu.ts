@@ -47,7 +47,7 @@ class ContextMenu {
 	 * @param onClose An optional callback to be invoked when the context menu is closed.
 	 * @param className An optional class name to add to the context menu.
 	 */
-	public show(actions: ContextMenuActions, checked: boolean, target: ContextMenuTarget | null, event: MouseEvent, frameElem: HTMLElement, onClose: (() => void) | null = null, className: string | null = null) {
+	public show(actions: ContextMenuActions, checked: boolean, target: ContextMenuTarget | null, event: MouseEvent, _frameElem: HTMLElement, onClose: (() => void) | null = null, className: string | null = null) {
 		let handlerId = 0;
 		const handlers: ContextMenuAction[] = [];
 		this.close();
@@ -71,20 +71,10 @@ class ContextMenu {
 		// live on <body>: inside a frame such as #view (position:fixed, a stacking context of its
 		// own) no z-index could lift it above the Commit Details sheet it is often opened from.
 		// Its position is set by the stylesheet there, so the frame-relative maths below is moot.
-		(document.body.classList.contains(CLASS_MOBILE_MODE) ? document.body : frameElem).appendChild(menu);
-		const menuBounds = menu.getBoundingClientRect(), frameBounds = frameElem.getBoundingClientRect();
-		const relativeX = event.pageX + menuBounds.width < frameBounds.right
-			? -2 // context menu fits to the right
-			: event.pageX - menuBounds.width > frameBounds.left
-				? 2 - menuBounds.width // context menu fits to the left
-				: -2 - (menuBounds.width - (frameBounds.width - (event.pageX - frameBounds.left))); // Overlap the context menu horizontally with the cursor
-		const relativeY = event.pageY + menuBounds.height < frameBounds.bottom
-			? -2 // context menu fits below
-			: event.pageY - menuBounds.height > frameBounds.top
-				? 2 - menuBounds.height // context menu fits above
-				: -2 - (menuBounds.height - (frameBounds.height - (event.pageY - frameBounds.top))); // Overlap the context menu vertically with the cursor
-		menu.style.left = (frameElem.scrollLeft + Math.max(event.pageX - frameBounds.left + relativeX, 2)) + 'px';
-		menu.style.top = Math.max(event.clientY - frameBounds.top + relativeY, 2) + 'px';
+		document.body.appendChild(menu);
+		const menuBounds = menu.getBoundingClientRect();
+		menu.style.left = Math.max(2, Math.min(event.clientX - 2, window.innerWidth - menuBounds.width - 2)) + 'px';
+		menu.style.top = Math.max(2, Math.min(event.clientY - 2, window.innerHeight - menuBounds.height - 2)) + 'px';
 		menu.style.opacity = '1';
 		this.elem = menu;
 		this.onClose = onClose;

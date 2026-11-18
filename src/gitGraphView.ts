@@ -1511,6 +1511,7 @@ export class GitGraphView extends Disposable {
 					errors: await this.dataSource.pushTag(msg.repo, msg.tagName, msg.remotes, msg.commitHash, msg.skipRemoteCheck)
 				});
 				break;
+
 			case 'rebase':
 				this.sendMessage({
 					command: 'rebase',
@@ -1837,8 +1838,8 @@ export class GitGraphView extends Disposable {
 				<div id="content">
 					<div id="commitGraph"></div>
 					<div id="commitTable"></div>
+					<div id="footer"></div>
 				</div>
-				<div id="footer"></div>
 			</div>
 			<script nonce="${nonce}">var initialState = ${encodeJsonForInlineScript(JSON.stringify(initialState))}, globalState = ${encodeJsonForInlineScript(JSON.stringify(globalState))}, workspaceState = ${encodeJsonForInlineScript(JSON.stringify(workspaceState))};</script>
 			<script nonce="${nonce}">${automationShimJs}</script>

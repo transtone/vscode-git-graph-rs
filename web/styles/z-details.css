@@ -3,6 +3,8 @@ body { --cdv-surface:#f3f3f3; --cdv-status:#efefef; --cdv-selected:#ececec; --cd
 body.vscode-dark, body.vscode-high-contrast { --cdv-surface:var(--vscode-editor-background); --cdv-status:var(--vscode-sideBar-background, var(--vscode-editor-background)); --cdv-selected:var(--vscode-list-inactiveSelectionBackground); --cdv-line:var(--vscode-panel-border, #555); }
 body:not(.mobileMode) #cdv.inline td, body:not(.mobileMode) #cdv.docked,
 body:not(.mobileMode) #cdvContent, body:not(.mobileMode) #cdvFiles { background-color:var(--cdv-surface); }
+body:not(.mobileMode) #cdv.inline > td:first-child { background:transparent; }
+body:not(.mobileMode) #cdv.inline { position:relative; z-index:3; }
 body:not(.mobileMode) #commitTable tr.commit.commitDetailsOpen { background-color:var(--cdv-selected); }
 body:not(.mobileMode) #cdvSummary { padding:0; border-right:1px solid var(--cdv-line); }
 body:not(.mobileMode) #cdvSummary.cdvHasDesktopDetails { display:flex; flex-direction:column; overflow-y:hidden; }
@@ -16,16 +18,57 @@ body:not(.mobileMode) #cdv.inline .cdvHeightResize { background-color:var(--cdv-
 .cdvStatusFields { flex:1; min-width:0; }
 .cdvAuthor, .cdvMeta { overflow-wrap:anywhere; }
 .cdvAuthor { font:500 13px/1.4 var(--vscode-font-family, system-ui, sans-serif); }
+.cdvAuthor a { font-size:12px; }
 .cdvMeta { margin-top:3px; font:11px/1.5 var(--gg-font-sans); color:var(--vscode-descriptionForeground); }
 .cdvIdentity .cdvmAvatar { width:28px; height:28px; font-size:11px; }
 .cdvHashButton, .cdvParentButton { display:inline-block; max-width:100%; box-sizing:border-box; padding:3px 7px; border:1px solid var(--cdv-line); border-radius:5px; background-color:var(--cdv-surface); font-family:var(--gg-font-sans); font-size:inherit; line-height:1.4; overflow-wrap:anywhere; vertical-align:middle; user-select:text; }
-.cdvHashButton { cursor:pointer; display:inline-flex; flex:none; align-items:center; gap:6px; color:var(--vscode-descriptionForeground); }
+.cdvHashButton { cursor:pointer; display:inline-flex; flex:none; align-items:center; gap:6px; color:var(--vscode-descriptionForeground); font-size:11px; }
 .cdvHashButton svg { width:12px; height:12px; }
 .cdvStatusRule { height:0; border-top:1px solid var(--cdv-line); margin:12px 16px 0; }
 .cdvStatusEnd { margin:12px 0 0; }
 .cdvParentsRow { display:flex; align-items:center; flex-wrap:wrap; gap:7px; padding:10px 16px 0; font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
+.cdvParentsGroup { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:7px; min-width:0; margin-left:auto; }
 .cdvParentsLabel { color:var(--vscode-descriptionForeground); }
 .cdvDesktopMessage { box-sizing:border-box; flex:1 1 auto; min-height:0; max-height:none; overflow-y:auto; padding:16px 16px 24px; font-family:var(--vscode-font-family, system-ui, sans-serif); font-size:var(--vscode-font-size, 13px); line-height:1.65; overflow-wrap:anywhere; user-select:text; }
 
 .cdvDesktopMessage #cdvMessageBody { line-height:inherit; }
+
+/* Desktop file tree: keep the existing interactive nodes and align their metadata. */
+.fileTreeStatus { display:none; }
+body:not(.mobileMode) #cdvFiles { padding:8px; }
+body:not(.mobileMode) #cdvFiles ul { padding-left:20px; }
+body:not(.mobileMode) #cdvFiles > ul { padding:0; }
+body:not(.mobileMode) #cdvFiles li { margin:0; overflow:visible; }
+body:not(.mobileMode) #cdvFiles .fileTreeFolder,
+body:not(.mobileMode) #cdvFiles .fileTreeFileRecord { display:flex; align-items:center; box-sizing:border-box; min-width:0; min-height:24px; gap:8px; position:relative; padding:0 8px; isolation:isolate; }
+body:not(.mobileMode) #cdvFiles .fileTreeFileRecord { gap:4px; }
+body:not(.mobileMode) #cdvFiles .fileTreeFolder::before,
+body:not(.mobileMode) #cdvFiles .fileTreeFileRecord::before { content:""; position:absolute; top:0; bottom:0; left:calc(-20px * var(--file-tree-depth, 0)); right:0; border-radius:4px; z-index:-1; pointer-events:none; }
+body:not(.mobileMode) #cdvFiles .fileTreeFolder:hover::before,
+body:not(.mobileMode) #cdvFiles .fileTreeFileRecord:hover::before { background:var(--vscode-list-hoverBackground, rgba(128,128,128,.1)); }
+body:not(.mobileMode) #cdvFiles .fileTreeFolderIcon { display:inline-flex; align-items:center; position:static; width:40px !important; height:24px; margin:0; flex:none; gap:8px; }
+body:not(.mobileMode) #cdvFiles .fileTreeChevron { display:inline-flex; width:16px; height:16px; flex:none; }
+body:not(.mobileMode) #cdvFiles .fileTreeChevron.closed { transform:rotate(-90deg); }
+body:not(.mobileMode) #cdvFiles .fileTreeChevron svg,
+body:not(.mobileMode) #cdvFiles .fileTreeFolderGlyph { position:static; width:14px; height:14px; color:var(--vscode-descriptionForeground); }
+body:not(.mobileMode) #cdvFiles .gitFolderName,
+body:not(.mobileMode) #cdvFiles .gitFileName { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+body:not(.mobileMode) #cdvFiles .fileTreeFolderCount { flex:none; margin-left:auto; color:var(--vscode-descriptionForeground); font-size:11px; }
+body:not(.mobileMode) #cdvFiles .fileTreeFile { display:flex; align-items:center; flex:1 1 auto; min-width:0; gap:8px; }
+body:not(.mobileMode) #cdvFiles .fileTreeFileIcon { display:none; }
+body:not(.mobileMode) #cdvFiles .fileTreeStatus { display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:16px; border-radius:4px; font:600 10px var(--gg-font-mono); color:var(--vscode-textLink-foreground); background:rgba(22,132,184,.16); }
+body:not(.mobileMode) #cdvFiles .fileTreeStatus.A,
+body:not(.mobileMode) #cdvFiles .fileTreeStatus.U { color:var(--vscode-gitDecoration-addedResourceForeground, #168a50); background:rgba(22,138,80,.16); }
+body:not(.mobileMode) #cdvFiles .fileTreeStatus.D { color:var(--vscode-gitDecoration-deletedResourceForeground, #cf3b48); background:rgba(207,59,72,.16); }
+body:not(.mobileMode) #cdvFiles .fileTreeFile .gitFileName { color:var(--vscode-editor-foreground); }
+body:not(.mobileMode) #cdvFiles .fileTreeFileAction,
+body:not(.mobileMode) #cdvFiles #cdvLastFileViewed { display:inline-flex; align-items:center; justify-content:center; flex:none; width:16px; height:20px; margin-left:0; }
+body:not(.mobileMode) #cdvFiles .fileTreeFileAction svg,
+body:not(.mobileMode) #cdvFiles #cdvLastFileViewed svg { position:static; flex:none; width:16px; }
+body:not(.mobileMode) #cdvFiles .fileTreeFileAddDel { display:inline-flex; flex:none; order:1; gap:8px; margin-left:4px; font:11px var(--gg-font-mono); }
+body:not(.mobileMode) #cdvFiles .fileTreeFileAdd,
+body:not(.mobileMode) #cdvFiles .fileTreeFileDel { padding:0; }
+body.mobileMode #cdvFiles .fileTreeFolderIcon { width:40px !important; }
+body.mobileMode #cdvFiles .fileTreeChevron, body.mobileMode #cdvFiles .fileTreeFolderGlyph { display:inline-block; width:16px; height:16px; vertical-align:middle; }
+body.mobileMode #cdvFiles .fileTreeChevron.closed { transform:rotate(-90deg); }
 

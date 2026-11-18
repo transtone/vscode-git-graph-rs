@@ -464,6 +464,7 @@ const html = `<!DOCTYPE html><html><head><meta name="viewport" content="width=de
    stylesheets resolves to nothing, so sheets/menus render transparent (the compiled bundle's own
    literal fallbacks only kick in once these are absent - here they mirror the real host). */
 :root{
+	${config.graph.colours.map((color, i) => '--git-graph-color' + i + ':' + color + ';').join('\n\t')}
 	--vscode-foreground:#cccccc;
 	--vscode-descriptionForeground:#9d9d9d;
 	--vscode-editor-background:#1e1e1e;
@@ -485,6 +486,7 @@ const html = `<!DOCTYPE html><html><head><meta name="viewport" content="width=de
 	--vscode-gitDecoration-modifiedResourceForeground:#e2c08d;
 	--vscode-gitDecoration-renamedResourceForeground:#73c991;
 }
+${config.graph.colours.map((_color, i) => '[data-color="' + i + '"]{--git-graph-color:var(--git-graph-color' + i + ');}').join('\n')}
 html,body{margin:0;padding:0;background-color:var(--vscode-editor-background)}#view{height:100vh}
 </style></head><body>
 <div id="view" tabindex="-1">

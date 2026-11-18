@@ -135,16 +135,15 @@ describe('seamless updates while viewing a commit in the middle of the history',
 		const scrollTopBefore = h.viewElem.scrollTop;
 		const graphColHeaderBefore = h.document.getElementById('tableHeaderGraphCol');
 
-		// commit 200 is well below the top and outside the rendered window either way. A new object
-		// (not a mutation of the existing one) - otherwise `this.commits[200]` inside the view,
-		// which references this very object, would "change" too and the comparison would be moot.
-		h.state.history[200] = { ...h.state.history[200], remotes: [{ name: 'main', remote: 'origin' }] };
+		// commit 270 is below the viewport and its velocity-dependent buffer.
+		// A new object avoids mutating the view's existing commit reference.
+		h.state.history[270] = { ...h.state.history[270], remotes: [{ name: 'main', remote: 'origin' }] };
 		h.dispatch({ command: 'refresh' });
 		await h.pump();
 
 		assert.equal(h.viewElem.scrollTop, scrollTopBefore, 'the scroll bar did not move');
 		assert.equal(h.document.getElementById('tableHeaderGraphCol'), graphColHeaderBefore, 'the Graph column header was not rebuilt');
-		assert.deepEqual(h.rows(), nodesBefore, 'every rendered row (none of which is commit 200) kept its DOM node');
+		assert.deepEqual(h.rows(), nodesBefore, 'every rendered row (none of which is commit 270) kept its DOM node');
 	});
 
 	it('re-renders a visible row when its remote label changes, leaving every other row untouched', async () => {

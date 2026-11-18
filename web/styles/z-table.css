@@ -1,4 +1,42 @@
 /* Angkor-style commit table; mobile keeps its compact layout. */
+body:not(.mobileMode) #commitTable .refsCol {
+	box-sizing:border-box;
+	width:var(--refs-column-width, 150px);
+	min-width:var(--refs-column-width, 150px);
+	max-width:var(--refs-column-width, 150px);
+	font-family:var(--gg-font-sans);
+	padding-right:0;
+}
+#commitTable .refsCol .refsGroup {
+	display:flex;
+	width:100%;
+	max-width:100%;
+	margin-right:0;
+	line-height:normal;
+}
+#commitTable .refsCol .refsGroup:empty { display:none; }
+#commitTable .refsCol .refsGroup::after {
+	content:'';
+	flex:1;
+	height:1px;
+	margin-left:-4px;
+	background:var(--git-graph-color);
+	opacity:0.4;
+	pointer-events:none;
+}
+body:not(.mobileMode) #commitTable tr.commit > .messageCol { padding-left:8px; }
+body:not(.mobileMode) #commitTable tr.commit > .messageCol::before {
+	content:'';
+	position:absolute;
+	left:0;
+	top:3px;
+	bottom:3px;
+	width:2px;
+	background:var(--git-graph-color);
+	pointer-events:none;
+}
+#commitTable .refsCol .refsGroup > .gitRef { flex-shrink:1; }
+#commitTable .refsCol .gitRefHeadRemote { font-style:normal; }
 body:not(.mobileMode) #commitTable.autoLayout .graphCol {
 	box-sizing:border-box;
 	width:var(--limitGraphWidth, 120px);
@@ -11,7 +49,7 @@ body:not(.mobileMode) #commitTable.autoLayout .messageCol {
 }
 body:not(.mobileMode) #commitTable .authorCol { min-width:112px; max-width:112px; }
 body:not(.mobileMode) #commitTable .hashCol { min-width:70px; max-width:70px; }
-body:not(.mobileMode) #commitTable .dateCol { min-width:80px; max-width:80px; text-align:right; }
+body:not(.mobileMode) #commitTable .dateCol { width:1px; min-width:0; max-width:none; padding-left:4px; padding-right:4px; text-align:right; }
 #commitTable th, #commitTable td {
 	font-family:var(--gg-font-sans);
 	color:var(--vscode-editor-foreground);
@@ -53,42 +91,67 @@ body:not(.mobileMode) #commitTable .dateCol { min-width:80px; max-width:80px; te
 /* Reference overflow stays operable without widening the message column. */
 .refsGroup { display:inline-flex; flex-wrap:nowrap; align-items:center; gap:4px; position:relative; flex:0 1 auto; min-width:0; max-width:50%; margin-right:6px; }
 .refsGroup:empty { display:none; }
-.refsGroup > .gitRef { flex:0 1 auto; min-width:0; max-width:140px; text-overflow:ellipsis; white-space:nowrap; }
-.refsOverflow { flex:none; line-height:20px; }
-.refsOverflow > summary { cursor:pointer; list-style:none; border:1px solid var(--vscode-panel-border, #8886); border-radius:10px; padding:0 6px; font-size:11px; }
-.refsOverflow > summary::-webkit-details-marker { display:none; }
-.refsOverflow .refsMore { position:absolute; left:0; top:100%; z-index:30; display:flex; flex-direction:column; gap:4px; padding:8px; min-width:150px; background:var(--vscode-editor-background); border:1px solid var(--vscode-panel-border, #8886); border-radius:5px; }
-.refsOverflow:not([open]) .refsMore { display:none; }
-#commitTable .messageCol { overflow:visible; }
+.refsGroup > .gitRef { display:inline-flex; align-items:center; flex:0 1 auto; min-width:0; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#commitTable tr.commit td.messageCol .description .refsGroup > .gitRef { flex-shrink:1; }
+.refsGroup > .gitRef .gitRefName { display:block; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.refsOverflow { flex:0 0 auto; line-height:20px; cursor:pointer; border:0; border-radius:2px; padding:0 6px; font-size:11px; background-color:color-mix(in srgb, var(--git-graph-color) 28%, var(--vscode-editor-background)); color:var(--vscode-editor-foreground); }
+.refsGroup .refsMore {
+	position:absolute;
+	left:0;
+	top:0;
+	z-index:30;
+	display:none;
+	flex-direction:column;
+	align-items:flex-start;
+	gap:0;
+	padding:0;
+	max-width:min(420px, calc(100vw - 16px));
+	background:var(--vscode-editor-background);
+	border-radius:2px;
+}
+.refsGroup .refsMore > .gitRef {
+	display:inline-flex;
+	align-items:center;
+	flex:none;
+	max-width:min(400px, calc(100vw - 32px));
+	margin:0;
+}
+.refsGroup .refsMore .gitRefName { flex:1 1 auto; min-width:0; max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.refsGroup:hover .refsMore,
+.refsGroup:focus-within .refsMore { display:flex; }
+.refsGroup:is(:hover, :focus-within) > :is(.gitRef, .refsOverflow) { opacity:0; }
+#commitTable tr.commit:has(.refsGroup:hover),
+#commitTable tr.commit:has(.refsGroup:focus-within) { position:relative; z-index:20; }
+#commitTable tr.commit:has(.refsGroup:hover) > .refsCol,
+#commitTable tr.commit:has(.refsGroup:focus-within) > .refsCol { z-index:30; overflow:visible; }
 #commitTable .messageCol .description { align-items:center; }
 #commitTable .messageCol .description .gitRef { flex-shrink:1; }
-body #view #commitTable .gitRef.head, body #view #commitTable .gitRef.remote, body #view #commitTable .gitRef.tag {
-	border-radius:4px;
+#commitTable .messageCol .description .refsMore > .gitRef { flex-shrink:0; }
+#commitTable .messageCol .description > .text { flex:1 1 auto; min-width:0; }
+
+body #view #commitTable .gitRef.head, body #view #commitTable .gitRef.remote, body #view #commitTable .gitRef.tag, body #view #commitTable .gitRef.stash {
+	border-radius:2px;
 	height:20px;
 	line-height:20px;
 	margin-top:0;
 	margin-right:0;
-	color:var(--git-graph-color);
-	border:1px solid currentColor;
-	background:transparent;
-}
-body #view #commitTable .gitRef.head.active {
-	background:var(--git-graph-color);
-	color:#fff;
-	border-color:var(--git-graph-color);
+	color:var(--vscode-editor-foreground);
+	border:0;
+	background:color-mix(in srgb, var(--git-graph-color) 28%, var(--vscode-editor-background));
 }
 body #view #commitTable .gitRef > svg {
 	width:14px;
 	height:14px;
+	flex-shrink:0;
 	padding:0;
-	margin:3px 3px 0 5px;
+	margin:0 4px;
 	color:inherit;
 	background:none;
 }
 body #view #commitTable .gitRefHeadRemote svg {
 	width:12px;
 	height:12px;
-	margin-right:4px;
+	margin:0 0 0 4px;
 	vertical-align:middle;
 }
 #commitTable .gitRefName, #commitTable .gitRefHeadRemote { line-height:20px; height:20px; }

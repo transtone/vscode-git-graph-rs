@@ -320,21 +320,22 @@ class Vertex {
 		const colour = this.isCommitted ? config.colours[this.onBranch.getColour() % config.colours.length] : '#808080';
 		const cx = (this.x * config.grid.x + config.grid.offsetX).toString();
 		const cy = (this.id * config.grid.y + config.grid.offsetY + offset).toString();
+		if (this.isCommitted && !this.isStash && commit.parents.length > 1) {
+			const dot = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'circle'));
+			dot.dataset.id = this.id.toString();
+			dot.setAttribute('cx', cx);
+			dot.setAttribute('cy', cy);
+			dot.setAttribute('r', '4');
+			dot.setAttribute('fill', colour);
+			dot.style.stroke = 'none';
+			return;
+		}
 		if (this.isCommitted && !this.isStash) {
 			const x = Number(cx), y = Number(cy);
-			const normalized = commit.email.trim().toLowerCase();
-			let hash = 0;
-			for (let i = 0; i < normalized.length; i++) hash = (Math.imul(hash, 31) + normalized.charCodeAt(i)) | 0;
 			const background = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'circle'));
 			background.setAttribute('cx', cx); background.setAttribute('cy', cy); background.setAttribute('r', '9');
-			background.setAttribute('fill', 'hsl(' + ((hash >>> 0) % 360) + ', 45%, 45%)');
+			background.setAttribute('fill', 'var(--vscode-editor-background)');
 			background.style.pointerEvents = 'none'; background.style.stroke = 'none';
-			const text = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'text'));
-			text.setAttribute('x', cx); text.setAttribute('y', cy);
-			text.setAttribute('text-anchor', 'middle'); text.setAttribute('dominant-baseline', 'central');
-			text.setAttribute('fill', 'white'); text.setAttribute('font-size', '8'); text.setAttribute('font-weight', '600');
-			text.style.pointerEvents = 'none';
-			text.textContent = commit.author.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => Array.from(part)[0]).join('').toUpperCase() || '?';
 			const clip = svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'clipPath'));
 			clip.setAttribute('id', 'graph-avatar-clip-' + this.id);
 			const clipCircle = clip.appendChild(document.createElementNS(SVG_NAMESPACE, 'circle'));
@@ -405,6 +406,9 @@ class Graph {
 	private readonly viewElem: HTMLElement;
 	private readonly contentElem: HTMLElement;
 	private readonly svg: SVGElement;
+	private readonly graphElem: HTMLElement;
+	private readonly horizontalScroll: HTMLElement;
+	private readonly horizontalScrollContent: HTMLElement;
 	private readonly maskRect: SVGRectElement;
 	private readonly gradientStop1: SVGStopElement;
 	private readonly gradientStop2: SVGStopElement;
@@ -421,7 +425,19 @@ class Graph {
 		this.muteConfig = muteConfig;
 
 		const elem = document.getElementById(id)!;
+		this.graphElem = elem;
 		this.contentElem = elem.parentElement!;
+		this.horizontalScroll = document.createElement('div');
+		this.horizontalScroll.id = 'graphHorizontalScroll';
+		this.horizontalScroll.setAttribute('role', 'region');
+		this.horizontalScroll.setAttribute('aria-label', strings.columnGraph);
+		this.horizontalScroll.tabIndex = 0;
+		this.horizontalScrollContent = this.horizontalScroll.appendChild(document.createElement('div'));
+		this.contentElem.insertAdjacentElement('afterend', this.horizontalScroll);
+		this.horizontalScroll.addEventListener('scroll', () => {
+			this.graphElem.scrollLeft = this.horizontalScroll.scrollLeft;
+			this.closeTooltip();
+		});
 		this.svg = document.createElementNS(SVG_NAMESPACE, 'svg');
 		let defs = this.svg.appendChild(document.createElementNS(SVG_NAMESPACE, 'defs'));
 
@@ -537,6 +553,8 @@ class Graph {
 			.sort((a, b) => a.index - b.index);
 		let group = document.createElementNS(SVG_NAMESPACE, 'g'), i, contentWidth = this.getContentWidth();
 		group.setAttribute('mask', 'url(#GraphMask)');
+		const refRows = new Set(Array.from(this.contentElem.querySelectorAll<HTMLElement>('.refsCol .refsGroup:not(:empty)'))
+			.map(ref => Number(ref.closest<HTMLElement>('tr')!.dataset.id)));
 
 		for (i = 0; i < this.branches.length; i++) {
 			this.branches[i].draw(group, this.config, this.expansions);
@@ -553,6 +571,20 @@ class Graph {
 			// Windowed rendering: only the vertices of the rendered commit rows are drawn (the
 			// branch paths above always span the whole graph - there are only a few of them)
 			if (visibleRange !== null && (i < visibleRange.start || i >= visibleRange.end)) continue;
+			if (refRows.has(i)) {
+				const point = this.vertices[i].getPoint();
+				const y = i * this.config.grid.y + this.config.grid.offsetY + expansionOffset;
+				const line = document.createElementNS(SVG_NAMESPACE, 'line');
+				line.setAttribute('class', 'refConnector');
+				line.setAttribute('data-commit-id', String(i));
+				line.setAttribute('x1', '0');
+				line.setAttribute('x2', String(point.x * this.config.grid.x + this.config.grid.offsetX));
+				line.setAttribute('y1', String(y));
+				line.setAttribute('y2', String(y));
+				line.setAttribute('stroke', 'var(--git-graph-color' + (this.vertices[i].getColour() % this.config.colours.length) + ')');
+				line.setAttribute('stroke-opacity', '0.4');
+				group.appendChild(line);
+			}
 			this.vertices[i].draw(group, this.config, expansionOffset, this.commits[i], this.avatarProvider(this.commits[i].email));
 		}
 
@@ -815,6 +847,11 @@ class Graph {
 
 	/* Width Adjustment Methods */
 
+	public setLeft(left: number) {
+		this.graphElem.style.left = left + 'px';
+		this.horizontalScroll.style.marginLeft = left + 'px';
+	}
+
 	public limitMaxWidth(maxWidth: number) {
 		this.maxWidth = maxWidth;
 		this.applyMaxWidth(this.getContentWidth());
@@ -833,15 +870,19 @@ class Graph {
 
 	private applyMaxWidth(contentWidth: number) {
 		this.setSvgWidth(contentWidth);
-		let offset1 = this.maxWidth > -1 ? (this.maxWidth - 12) / contentWidth : 1;
-		let offset2 = this.maxWidth > -1 ? this.maxWidth / contentWidth : 1;
-		this.gradientStop1.setAttribute('offset', offset1.toString());
-		this.gradientStop2.setAttribute('offset', offset2.toString());
+		// The full graph scrolls inside its column rather than fading off at the width limit.
+		this.gradientStop1.setAttribute('offset', '1');
+		this.gradientStop2.setAttribute('offset', '1');
 	}
 
 	private setSvgWidth(contentWidth: number) {
-		let width = this.maxWidth > -1 ? Math.min(contentWidth, this.maxWidth) : contentWidth;
-		this.svg.setAttribute('width', width.toString());
+		const width = this.maxWidth > -1 ? Math.min(contentWidth, this.maxWidth) : contentWidth;
+		this.svg.setAttribute('width', contentWidth.toString());
+		this.graphElem.style.width = width + 'px';
+		this.horizontalScroll.style.width = width + 'px';
+		this.horizontalScrollContent.style.width = contentWidth + 'px';
+		this.horizontalScroll.hidden = contentWidth <= width;
+		this.graphElem.scrollLeft = this.horizontalScroll.scrollLeft;
 	}
 
 
@@ -934,7 +975,7 @@ class Graph {
 			this.tooltipTimeout = setTimeout(() => {
 				this.tooltipTimeout = null;
 				const rect = vertexElem.getBoundingClientRect();
-				let vertexScreenY = rect.top + rect.height / 2;
+				let vertexScreenY = rect.top + rect.height / 2 - this.viewElem.getBoundingClientRect().top;
 				if (vertexScreenY >= 5 && vertexScreenY <= this.viewElem.clientHeight - 5) {
 					// Vertex is completely visible on the screen (not partially off)
 					this.tooltipVertex = vertexElem;

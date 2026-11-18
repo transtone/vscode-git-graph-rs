@@ -65,6 +65,51 @@ const diffKeys = (a, b, tol) => {
 	return out;
 };
 
+// Regression: 650 CSS pixels at 1.5x corresponds to roughly 980 screenshot pixels.
+await page.setViewport({ width: 650, height: 700, deviceScaleFactor: 1.5 });
+for (const multiple of [false, true]) {
+	await load('');
+	const result = await page.evaluate((multiple) => {
+		const row = document.querySelector('tr.commit:not(#uncommittedChanges)');
+		const group = row.querySelector('.refsGroup');
+		const label = group.querySelector(':scope > .gitRef');
+		const name = label.querySelector('.gitRefName');
+		name.textContent = 'origin/feature/ExpertManagement-测试分支-very-long-name';
+		if (multiple && !group.querySelector('.refsOverflow')) {
+			const count = document.createElement('span');
+			count.className = 'refsOverflow';
+			count.textContent = '+2';
+			group.appendChild(count);
+		}
+		if (!multiple) group.querySelector('.refsOverflow')?.remove();
+		const message = row.querySelector('.description > .text');
+		return { groupRight: group.getBoundingClientRect().right, labelRight: label.getBoundingClientRect().right,
+			messageLeft: message.getBoundingClientRect().left, nameWidth: name.getBoundingClientRect().width,
+			messageWidth: message.getBoundingClientRect().width };
+	}, multiple);
+	check(result.nameWidth > 10 && result.messageWidth > 10 && result.labelRight <= result.groupRight + 1 && result.groupRight <= result.messageLeft + 1,
+		'long ref does not overlap message at 650 CSS px / 1.5x (' + (multiple ? 'multiple' : 'single') + ')', result);
+}
+await page.setViewport({ width: 1280, height: 760, deviceScaleFactor: 1 });
+
+await load('');
+const hoverLayout = await page.evaluate(() => {
+	const row = document.querySelector('tr.commit[data-id="5"]');
+	const text = row.querySelector('.description > .text');
+	const button = row.querySelector('.openChangesBtn');
+	const before = text.getBoundingClientRect();
+	row.classList.add('contextMenuActive');
+	const after = text.getBoundingClientRect();
+	const position = getComputedStyle(button).position;
+	row.classList.remove('contextMenuActive');
+	const icon = document.querySelector('.refsGroup > .gitRef > svg');
+	return { beforeWidth: before.width, afterWidth: after.width, beforeLeft: before.left, afterLeft: after.left,
+		position, iconShrink: getComputedStyle(icon).flexShrink };
+});
+check(near(hoverLayout.beforeWidth, hoverLayout.afterWidth, 0.5) && near(hoverLayout.beforeLeft, hoverLayout.afterLeft, 0.5)
+	&& hoverLayout.position === 'absolute' && hoverLayout.iconShrink === '0',
+	'hover action does not change message geometry and reference icons do not shrink', hoverLayout);
+
 const session = async (variant, scenarios) => {
 	await load(variant === 'default' ? '' : '?cfg=' + variant);
 	const variantLabel = variant === 'default' ? '' : ' [' + variant + ']';
@@ -101,9 +146,72 @@ const checkVertexAlignment = async (label) => {
 		'vertex alignment: ' + label + ' row/circle centers differ by < 0.75 CSS px', result);
 };
 
+const checkReferenceLinks = async (label) => {
+	const result = await page.evaluate(() => [...document.querySelectorAll('tr.commit')]
+		.filter(row => row.querySelector('.refsCol .refsGroup > .gitRef'))
+		.map(row => {
+			const r = row.getBoundingClientRect();
+			const pill = row.querySelector('.refsGroup > .gitRef').getBoundingClientRect();
+			const line = document.querySelector('.refConnector[data-commit-id="' + row.dataset.id + '"]');
+			const vertex = document.querySelector('circle[data-id="' + row.dataset.id + '"]');
+			if (!line || !vertex) return { id: row.dataset.id, pass: false };
+			const l = line.getBoundingClientRect(), v = vertex.getBoundingClientRect();
+			const stroke = getComputedStyle(line).stroke;
+			const edge = getComputedStyle(row.querySelector('.messageCol'), '::before');
+			return { id: row.dataset.id, pass: Math.abs(pill.top + pill.height / 2 - r.top - r.height / 2) < 0.75
+				&& Math.abs(l.right - v.left - v.width / 2) < 0.75
+				&& Math.abs(l.top - v.top - v.height / 2) < 0.75
+				&& edge.width === '2px' && edge.top === '3px' && edge.bottom === '3px' && edge.backgroundColor === stroke };
+		}));
+	check(result.length > 0 && result.every(row => row.pass), 'centered refs, node connectors and colored message edges: ' + label, result);
+};
+
 /* ---------------- real vertex-to-row center alignment ---------------- */
 await load('');
 await checkVertexAlignment('base');
+await checkReferenceLinks('base');
+await page.hover('.refsGroup > .gitRef');
+await page.evaluate(() => window.__settle());
+const hoverSurface = await page.evaluate(() => {
+	const group = document.querySelector('.refsGroup');
+	const popup = group.querySelector('.refsMore');
+	return {
+		display:getComputedStyle(popup).display,
+		background:getComputedStyle(popup).backgroundColor,
+		pageBackground:getComputedStyle(document.body).backgroundColor,
+		labelBackground:getComputedStyle(popup.querySelector('.gitRef')).backgroundColor,
+		baseBackground:getComputedStyle(group.querySelector(':scope > .gitRef')).backgroundColor,
+		baseOpacity:getComputedStyle(group.querySelector(':scope > .gitRef')).opacity
+	};
+});
+check(hoverSurface.display === 'flex' && hoverSurface.background === hoverSurface.pageBackground
+	&& hoverSurface.labelBackground === hoverSurface.baseBackground && hoverSurface.baseOpacity === '0',
+	'hovered reference expansion has an opaque surface and preserves its filled label style', hoverSurface);
+await page.mouse.move(500, 10);
+
+for (const width of [210, 150]) {
+	await page.evaluate(width => {
+		const start = document.querySelector('tr.commit .refsCol').getBoundingClientRect().width;
+		document.querySelector('tr.commit .refsCol .resizeCol.right').dispatchEvent(new MouseEvent('mousedown', { bubbles:true, clientX:start }));
+		const overlay = document.querySelector('.colResize');
+		overlay.dispatchEvent(new MouseEvent('mousemove', { bubbles:true, clientX:width }));
+		overlay.dispatchEvent(new MouseEvent('mouseup', { bubbles:true, clientX:width }));
+	}, width);
+	await page.evaluate(() => window.__settle());
+	const geometry = await page.evaluate(() => ({
+		width:document.querySelector('.refsCol').getBoundingClientRect().width,
+		graphLeft:document.querySelector('#commitGraph').getBoundingClientRect().left,
+		headerLeft:document.querySelector('#tableHeaderGraphCol').getBoundingClientRect().left,
+		barMargin:parseFloat(document.querySelector('#graphHorizontalScroll').style.marginLeft),
+		auto:document.querySelector('#commitTable').classList.contains('autoLayout'),
+		saved:Object.values(window.initialState.repos)[0].columnWidths[4]
+	}));
+	check(geometry.width === width && geometry.graphLeft === geometry.headerLeft
+		&& geometry.barMargin === width && geometry.auto && geometry.saved === width,
+		'refs column drag keeps the graph and scrollbar aligned at ' + width + 'px', geometry);
+	await checkVertexAlignment('refs resized to ' + width);
+}
+
 await run('jump');
 await checkVertexAlignment('virtualized mid-history');
 await load('');
@@ -111,14 +219,101 @@ await run('jump');
 await run('openCdv');
 check(await page.$('#cdvSummary') !== null, 'vertex alignment: commit details actually opened');
 await checkVertexAlignment('expanded commit details');
+await checkReferenceLinks('expanded commit details');
+await page.click('.fileTreeFile'); // Include the dynamically inserted last-viewed eye icon.
+for (const width of [520, 360, 280]) {
+	await page.evaluate(width => {
+		document.querySelector('#cdvFiles').style.width = width + 'px';
+		document.querySelectorAll('.fileTreeFileRecord').forEach(row => row.classList.add('contextMenuActive'));
+	}, width);
+	await page.evaluate(() => window.__settle());
+	const rows = await page.evaluate(() => [...document.querySelectorAll('.fileTreeFileRecord')].map(row => {
+		const counts = row.querySelector('.fileTreeFileAddDel')?.getBoundingClientRect();
+		const icons = [...row.querySelectorAll('.fileTreeFileAction, #cdvLastFileViewed')].map(button => {
+			const b = button.getBoundingClientRect(), svg = button.querySelector('svg').getBoundingClientRect();
+			return { left:svg.left, right:svg.right, contained:svg.left >= b.left - 0.5 && svg.right <= b.right + 0.5 };
+		});
+		return { countsLeft:counts?.left, pass:icons.every((icon, i) => icon.contained
+			&& (!counts || icon.right + 7.5 <= counts.left)
+			&& (i === 0 || (icons[i - 1].right + 3.5 <= icon.left && icon.left <= icons[i - 1].right + 4.5))), icons };
+	}));
+	check(rows.length > 0 && rows.every(row => row.pass), 'compact file action SVGs stay within buttons and clear of diff counts at ' + width + 'px', rows);
+}
 await load('');
 await run('uncommittedAppear');
 await checkVertexAlignment('WIP row');
+await checkReferenceLinks('WIP row');
 await page.setViewport({ width: 1280, height: 760, deviceScaleFactor: 1.25 });
 await load('');
 await run('uncommittedAppear');
 await checkVertexAlignment('125% device scale');
+for (const withWip of [false, true]) {
+	await load('');
+	if (withWip) await run('uncommittedAppear');
+	for (const scrollTop of [0, 500, 1000, 2000, 4000, 7000, 2000, 0]) {
+		await page.evaluate((top) => { document.getElementById('content').scrollTop = top; }, scrollTop);
+		await new Promise((resolve) => setTimeout(resolve, 100));
+		await checkVertexAlignment('scroll ' + scrollTop + (withWip ? ' with WIP' : ' without WIP'));
+	}
+}
 await page.setViewport({ width: 1280, height: 760, deviceScaleFactor: 1 });
+
+/* ---------------- independent graph horizontal scrolling ---------------- */
+await load('');
+check(await page.$eval('#graphHorizontalScroll', (bar) => bar.hidden), 'short graph needs no horizontal scrollbar');
+await page.evaluate(async () => {
+	const history = window.__state.history;
+	for (let i = 0; i < 20; i++) history[i].parents = [history[50].hash];
+	window.__dispatch({ command: 'refresh' });
+	await window.__respond();
+	await window.__settle();
+});
+const graphScrollGeometry = () => {
+	const bar = document.getElementById('graphHorizontalScroll');
+	const graph = document.getElementById('commitGraph');
+	const content = document.getElementById('content');
+	return { visible: !bar.hidden, scrollLeft: bar.scrollLeft, graphLeft: graph.scrollLeft,
+		tableLeft: content.scrollLeft, overflowX: getComputedStyle(content).overflowX,
+		refsLeft: document.querySelector('tr.commit .refsCol').getBoundingClientRect().left,
+		graphViewportLeft: graph.getBoundingClientRect().left, barLeft: bar.getBoundingClientRect().left,
+		messageLeft: document.querySelector('tr.commit .messageCol').getBoundingClientRect().left,
+		dateLeft: document.querySelector('tr.commit .dateCol').getBoundingClientRect().left,
+		svgLeft: graph.querySelector('svg').getBoundingClientRect().left,
+		barTop: bar.getBoundingClientRect().top, contentBottom: content.getBoundingClientRect().bottom };
+};
+const beforeGraphScroll = await page.evaluate(graphScrollGeometry);
+await checkReferenceLinks('wide graph before horizontal scroll');
+await page.$eval('#graphHorizontalScroll', (bar) => { bar.scrollLeft = 240; });
+await new Promise((resolve) => setTimeout(resolve, 100));
+const afterGraphScroll = await page.evaluate(graphScrollGeometry);
+check(beforeGraphScroll.visible && afterGraphScroll.scrollLeft > 0
+	&& afterGraphScroll.graphLeft === afterGraphScroll.scrollLeft
+	&& near(beforeGraphScroll.svgLeft - afterGraphScroll.svgLeft, afterGraphScroll.scrollLeft)
+	&& beforeGraphScroll.refsLeft === afterGraphScroll.refsLeft
+	&& near(afterGraphScroll.barLeft, afterGraphScroll.graphViewportLeft)
+	&& beforeGraphScroll.messageLeft === afterGraphScroll.messageLeft
+	&& beforeGraphScroll.dateLeft === afterGraphScroll.dateLeft
+	&& afterGraphScroll.tableLeft === 0 && afterGraphScroll.overflowX === 'hidden',
+	'graph scroll moves only the SVG, leaving message and date columns fixed', { beforeGraphScroll, afterGraphScroll });
+await page.$eval('#content', (content) => { content.scrollTop = 2000; });
+await new Promise((resolve) => setTimeout(resolve, 100));
+const afterVerticalScroll = await page.evaluate(graphScrollGeometry);
+check(afterVerticalScroll.graphLeft === afterGraphScroll.graphLeft
+	&& near(afterVerticalScroll.barTop, afterGraphScroll.barTop)
+	&& near(afterVerticalScroll.barTop, afterVerticalScroll.contentBottom),
+	'graph scrollbar stays at the viewport bottom and preserves its offset through vertical scrolling', afterVerticalScroll);
+await checkVertexAlignment('independent graph scroll');
+await page.evaluate(() => {
+	const row = document.querySelector('tr.commit');
+	row.classList.add('graphVertexActive');
+});
+await new Promise((resolve) => setTimeout(resolve, 100));
+const cellBackgrounds = await page.evaluate(() => [...document.querySelector('tr.commit').cells].map(cell => ({
+	className: cell.className, background: getComputedStyle(cell).backgroundColor
+})));
+check(cellBackgrounds.filter(cell => /refsCol|graphCol/.test(cell.className)).every(cell => cell.background === 'rgba(0, 0, 0, 0)')
+	&& cellBackgrounds.filter(cell => /messageCol|dateCol/.test(cell.className)).every(cell => cell.background !== 'rgba(0, 0, 0, 0)'),
+	'row emphasis colors only message and date cells', cellBackgrounds);
 
 /* ---------------- main session (default config) ---------------- */
 const mainChecks = [];

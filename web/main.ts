@@ -208,7 +208,7 @@ class GitGraphView {
 			}
 		}, true);
 		this.tableElem.addEventListener('click', event => {
-			if ((event.target as Element).closest('.refsOverflow > summary')) event.stopPropagation();
+			if ((event.target as Element).closest('.refsOverflow')) event.stopPropagation();
 		}, true);
 		this.footerElem = document.getElementById('footer')!;
 
@@ -1430,7 +1430,7 @@ class GitGraphView {
 	}
 
 	public saveColumnWidths(columnWidths: GG.ColumnWidth[]) {
-		this.gitRepos[this.currentRepo].columnWidths = [columnWidths[0], columnWidths[2], columnWidths[3], columnWidths[4]];
+		this.gitRepos[this.currentRepo].columnWidths = [columnWidths[0], columnWidths[2], columnWidths[3], columnWidths[4], columnWidths[5]];
 		this.saveRepoState();
 	}
 
@@ -1609,12 +1609,16 @@ class GitGraphView {
 
 	public render() {
 		this.renderPinnedControls();
-		this.renderTable();
+		this.renderTable(true);
 		this.renderGraph();
 		// The graph column's automatic width follows the lanes the graph just drew, so it can only
 		// be measured once renderGraph() has run - makeTableResizable() applies it from inside
 		// renderTable(), which is one step too early to see newly opened branch lanes.
 		applyGraphColumnAutoLayout(this);
+	}
+
+	public getGraphColumnLeft() {
+		return this.renderedNarrowWindow ? 0 : parseFloat(this.tableElem.style.getPropertyValue('--refs-column-width')) || 150;
 	}
 
 	public renderGraph() {
@@ -1623,9 +1627,8 @@ class GitGraphView {
 			return;
 		}
 
-		const graphHeader = document.getElementById('tableHeaderGraphCol');
 		const graphElem = document.getElementById('commitGraph');
-		if (graphHeader !== null && graphElem !== null) graphElem.style.left = graphHeader.offsetLeft + 'px';
+		this.graph.setLeft(this.getGraphColumnLeft());
 		const cdvHeight = this.gitRepos[this.currentRepo].cdvHeight;
 		const expandedCommit = isCdvDocked(this) ? null : this.expandedCommit;
 		const expandedCommitElem = expandedCommit !== null ? document.getElementById('cdv') : null;
@@ -1662,7 +1665,13 @@ class GitGraphView {
 				const graphTop = graphElem.getBoundingClientRect().top;
 				const extraBeforeRow = metaExpansions.reduce((sum, expansion) => sum + (expansion.index < index ? expansion.height : 0), 0)
 					+ (expandedCommit !== null && expandedCommit.index < index ? this.config.graph.grid.expandY : 0);
-				if (Number.isFinite(index)) this.config.graph.grid.offsetY = row.top + row.height / 2 - graphTop - index * measuredRowHeight - extraBeforeRow;
+				// Chromium can report the previous spacer height during this table layout.
+				// Normalize the row anchor to the virtual window's requested height.
+				const spacer = this.tableElem.querySelector<HTMLElement>('#virtSpacerTop td');
+				const spacerCorrection = this.renderedRange !== null && spacer !== null
+					? this.renderedRange.start * this.getRowHeight() - spacer.getBoundingClientRect().height
+					: 0;
+				if (Number.isFinite(index)) this.config.graph.grid.offsetY = row.top + row.height / 2 - graphTop - index * measuredRowHeight - extraBeforeRow + spacerCorrection;
 			}
 		}
 
@@ -1720,7 +1729,7 @@ class GitGraphView {
 	}
 
 	private getCommitRowHtml(i: number, ctx: ReturnType<GitGraphView['createRowRenderingContext']>) {
-		const order = this.renderedNarrowWindow ? [0, 1] : [0, 1, ...(ctx.colVisibility.author ? [3] : []), ...(ctx.colVisibility.commit ? [4] : []), ...(ctx.colVisibility.date ? [2] : [])];
+		const order = this.renderedNarrowWindow ? [0, 1] : [5, 0, 1, ...(ctx.colVisibility.author ? [3] : []), ...(ctx.colVisibility.commit ? [4] : []), ...(ctx.colVisibility.date ? [2] : [])];
 		function getResizeColHtml(col: number) {
 			const pos = order.indexOf(col);
 			return (pos > 0 ? '<span class="resizeCol left" data-col="' + order[pos - 1] + '"></span>' : '') + (pos < order.length - 1 ? '<span class="resizeCol right" data-col="' + col + '"></span>' : '');
@@ -1757,10 +1766,10 @@ class GitGraphView {
 		for (j = 0; j < branchLabels.heads.length; j++) {
 			refName = escapeHtml(branchLabels.heads[j].name);
 			refActive = branchLabels.heads[j].name === this.gitBranchHead;
-			refHtml = '<span class="gitRef head' + (refActive ? ' active' : '') + '" data-name="' + refName + '">' + (refActive ? SVG_ICONS.check : SVG_ICONS.monitor) + '<span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span>';
+			refHtml = '<span class="gitRef head' + (refActive ? ' active' : '') + '" data-name="' + refName + '"><span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span>' + (refActive ? SVG_ICONS.check : SVG_ICONS.monitor);
 			for (k = 0; k < branchLabels.heads[j].remotes.length; k++) {
 				remoteName = escapeHtml(branchLabels.heads[j].remotes[k]);
-				refHtml += '<span class="gitRefHeadRemote" data-remote="' + remoteName + '" data-fullref="' + escapeHtml(branchLabels.heads[j].remotes[k] + '/' + branchLabels.heads[j].name) + '">' + SVG_ICONS.cloud + remoteName + '</span>';
+				refHtml += '<span class="gitRefHeadRemote" data-remote="' + remoteName + '" data-fullref="' + escapeHtml(branchLabels.heads[j].remotes[k] + '/' + branchLabels.heads[j].name) + '">' + remoteName + SVG_ICONS.cloud + '</span>';
 			}
 			refHtml += '</span>';
 			refBranches = refActive ? refHtml + refBranches : refBranches + refHtml;
@@ -1768,7 +1777,7 @@ class GitGraphView {
 		}
 		for (j = 0; j < branchLabels.remotes.length; j++) {
 			refName = escapeHtml(branchLabels.remotes[j].name);
-			refBranches += '<span class="gitRef remote" data-name="' + refName + '" data-remote="' + (branchLabels.remotes[j].remote !== null ? escapeHtml(branchLabels.remotes[j].remote!) : '') + '">' + SVG_ICONS.cloud + '<span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span></span>';
+			refBranches += '<span class="gitRef remote" data-name="' + refName + '" data-remote="' + (branchLabels.remotes[j].remote !== null ? escapeHtml(branchLabels.remotes[j].remote!) : '') + '"><span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span>' + SVG_ICONS.cloud + '</span>';
 		}
 
 		let tagMap: { [name: string]: { name: string, remotes: string[], annotated: boolean, local: boolean } } = {};
@@ -1782,7 +1791,7 @@ class GitGraphView {
 		for (let tName in tagMap) {
 			let tag = tagMap[tName];
 			refName = escapeHtml(tag.name);
-			let refHtml = '<span class="gitRef tag" data-name="' + refName + '" data-tagtype="' + (tag.annotated ? 'annotated' : 'lightweight') + '">' + SVG_ICONS.tag + '<span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span>';
+			let refHtml = '<span class="gitRef tag" data-name="' + refName + '" data-tagtype="' + (tag.annotated ? 'annotated' : 'lightweight') + '"><span class="gitRefName" data-fullref="' + refName + '">' + refName + '</span>' + SVG_ICONS.tag;
 			for (k = 0; k < tag.remotes.length; k++) {
 				remoteName = escapeHtml(tag.remotes[k]);
 				refHtml += '<span class="gitRefHeadRemote" data-remote="' + remoteName + '" data-fullref="' + escapeHtml(tag.remotes[k] + '/tags/' + tag.name) + '">' + remoteName + '</span>';
@@ -1802,7 +1811,7 @@ class GitGraphView {
 
 		if (commit.stash !== null) {
 			refName = escapeHtml(commit.stash.selector);
-			refBranches = '<span class="gitRef stash" data-name="' + refName + '">' + SVG_ICONS.stash + '<span class="gitRefName" data-fullref="' + refName + '">' + escapeHtml(commit.stash.selector.substring(5)) + '</span></span>' + refBranches;
+			refBranches = '<span class="gitRef stash" data-name="' + refName + '"><span class="gitRefName" data-fullref="' + refName + '">' + escapeHtml(commit.stash.selector.substring(5)) + '</span>' + SVG_ICONS.stash + '</span>' + refBranches;
 		}
 
 		const commitDot = commit.hash === this.commitHead
@@ -1823,7 +1832,7 @@ class GitGraphView {
 			: '';
 		const rowOpenHtml = '<tr class="commit' + (commit.hash === currentHash ? ' current' : '') + (mutedCommits[i] ? ' mute' : '') + '"' + (commit.hash !== UNCOMMITTED ? '' : ' id="uncommittedChanges"') + ' data-id="' + i + '" data-hash="' + commit.hash + '" data-color="' + vertexColours[i] + '">';
 		if (commit.hash === UNCOMMITTED && !this.renderedNarrowWindow) {
-			return rowOpenHtml + '<td class="graphCol">' + getResizeColHtml(0) + '</td><td class="messageCol wipCell" colspan="' + (this.getNumColumns() - 1) + '">' + this.getWipRowHtml(commit.message) + '</td></tr>';
+			return rowOpenHtml + '<td class="refsCol">' + getResizeColHtml(5) + '</td><td class="graphCol">' + getResizeColHtml(0) + '</td><td class="messageCol wipCell" colspan="' + (this.getNumColumns() - 2) + '">' + this.getWipRowHtml(commit.message) + '</td></tr>';
 		}
 		if (this.renderedNarrowWindow) {
 			// The mobile layout drops the Date, Author and Commit columns. Its two-line row reads
@@ -1840,11 +1849,11 @@ class GitGraphView {
 		const refsContainer = document.createElement('div');
 		refsContainer.innerHTML = refBranches + refTags;
 		const refs = Array.from(refsContainer.children);
-		const refsHtml = refs.length <= 3 ? refBranches + refTags : refs.slice(0, 3).map(ref => ref.outerHTML).join('')
-			+ '<details class="refsOverflow"><summary aria-label="' + escapeHtml(strings.columnRefs) + '">+' + (refs.length - 3) + '</summary><span class="refsMore">'
-			+ refs.slice(3).map(ref => ref.outerHTML).join('') + '</span></details>';
+		const refsHtml = refs.length === 0 ? '' : refs[0].outerHTML
+			+ (refs.length > 1 ? '<span class="refsOverflow" tabindex="0" role="button" aria-label="' + escapeHtml(strings.columnRefs) + '">+' + (refs.length - 1) + '</span>' : '')
+			+ '<span class="refsMore">' + refs.map(ref => ref.outerHTML).join('') + '</span>';
 		let html = rowOpenHtml +
-			'<td class="graphCol">' + getResizeColHtml(0) + '</td><td class="messageCol">' + getResizeColHtml(1) + '<span class="description">' + commitDot + pinnedBadge + '<span class="refsGroup">' + refsHtml + '</span>' + refGerrit + refPullRequest + message + openChangesBtn + '</span></td>' +
+			'<td class="refsCol">' + getResizeColHtml(5) + '<span class="refsGroup">' + refsHtml + '</span></td><td class="graphCol">' + getResizeColHtml(0) + '</td><td class="messageCol">' + getResizeColHtml(1) + '<span class="description">' + commitDot + pinnedBadge + refGerrit + refPullRequest + message + openChangesBtn + '</span></td>' +
 			(colVisibility.author ? '<td class="authorCol text" title="' + escapeHtml(commit.author + ' <' + commit.email + '>') + '">' + getResizeColHtml(3) + escapeHtml(commit.author) + '</td>' : '') +
 			(colVisibility.commit ? '<td class="hashCol text" title="' + escapeHtml(commit.hash) + '">' + getResizeColHtml(4) + abbrevCommit(commit.hash) + '</td>' : '') +
 			(colVisibility.date ? '<td class="dateCol text" title="' + date.title + '">' + getResizeColHtml(2) + date.formatted + '</td>' : '') +
@@ -2178,6 +2187,15 @@ class GitGraphView {
 			this.render();
 			return;
 		}
+		// Keep the current window while the viewport has room on both sides. Rebuilding on
+		// every row of movement recreates the graph even though the buffer already covers it.
+		const rowHeight = this.getRowHeight();
+		const base = this.getRowTop(0);
+		const firstVisible = Math.max(0, Math.floor((this.viewElem.scrollTop - base) / rowHeight));
+		const lastVisible = Math.min(this.commits.length, Math.ceil((this.viewElem.scrollTop + this.viewElem.clientHeight - base) / rowHeight));
+		const threshold = Math.floor(GitGraphView.VIRTUAL_ROW_BUFFER / 2);
+		if ((this.renderedRange.start === 0 || firstVisible - this.renderedRange.start > threshold)
+			&& (this.renderedRange.end === this.commits.length || this.renderedRange.end - lastVisible > threshold)) return;
 		const range = this.computeVisibleRange();
 		if (range.start === this.renderedRange.start && range.end === this.renderedRange.end) return;
 		const scrollTop = this.viewElem.scrollTop;
@@ -2201,7 +2219,7 @@ class GitGraphView {
 		this.render();
 	}
 
-	private renderTable() {
+	private renderTable(preserveWindow: boolean = false) {
 		// The expanded Commit Details View is a <tr> living inside this table (non-docked layout).
 		// Detach it while the rows are reconciled and put it back afterwards: it must not be
 		// treated as one of the commit rows, and re-creating it would discard its scroll position,
@@ -2218,7 +2236,7 @@ class GitGraphView {
 		const ctx = this.createRowRenderingContext();
 		const colVisibility = ctx.colVisibility;
 
-		const headerHtml = '<tr id="tableColHeaders"><th id="tableHeaderGraphCol" class="tableColHeader graphCol" data-col="0">' + strings.columnGraph + '</th><th class="tableColHeader messageCol" data-col="1">' + strings.columnDescription + '</th>' +
+		const headerHtml = '<tr id="tableColHeaders" aria-hidden="true">' + (!this.renderedNarrowWindow ? '<th class="tableColHeader refsCol" data-col="5">' + strings.columnRefs + '</th>' : '') + '<th id="tableHeaderGraphCol" class="tableColHeader graphCol" data-col="0">' + strings.columnGraph + '</th><th class="tableColHeader messageCol" data-col="1">' + strings.columnDescription + '</th>' +
 			(colVisibility.author ? '<th class="tableColHeader authorCol" data-col="3">' + strings.columnAuthor + '</th>' : '') +
 			(colVisibility.commit ? '<th class="tableColHeader commitCol hashCol" data-col="4">' + strings.columnCommit + '</th>' : '') +
 			(colVisibility.date ? '<th class="tableColHeader dateCol" data-col="2">' + strings.columnDate + '</th>' : '') +
@@ -2234,7 +2252,17 @@ class GitGraphView {
 			const maxScroll = Math.max(0, this.getHeaderHeight() + this.commits.length * this.getRowHeight() - this.viewElem.clientHeight);
 			if (this.viewElem.scrollTop > maxScroll) this.viewElem.scrollTop = maxScroll;
 		}
+		const previousRows = preserveWindow && this.renderedRange !== null
+			? this.tableElem.querySelectorAll<HTMLElement>('tr.commit[data-hash]') : null;
 		this.renderedRange = this.canVirtualize() ? this.computeVisibleRange() : null;
+		if (this.renderedRange !== null && previousRows !== null && previousRows.length > 0) {
+			const first = this.commitLookup[previousRows[0].dataset.hash!];
+			const last = this.commitLookup[previousRows[previousRows.length - 1].dataset.hash!];
+			if (first !== undefined && last !== undefined && first <= this.renderedRange.end && last >= this.renderedRange.start) {
+				this.renderedRange.start = Math.min(first, this.renderedRange.start);
+				this.renderedRange.end = Math.max(last + 1, this.renderedRange.end);
+			}
+		}
 		const from = this.renderedRange !== null ? this.renderedRange.start : 0;
 		const to = this.renderedRange !== null ? this.renderedRange.end : this.commits.length;
 
@@ -2679,16 +2707,15 @@ class GitGraphView {
 
 	public getColumnVisibility() {
 		if (this.isNarrowWindow()) {
-			// Narrow window (mobile) layout: the Date, Author and Commit columns are hidden so the
-			// graph and the commit messages fit a phone-width view; the wide layout is unchanged
+			// Narrow windows show only the graph and commit messages.
 			return { date: false, author: false, commit: false };
 		}
 		let colWidths = this.gitRepos[this.currentRepo].columnWidths;
 		if (colWidths !== null) {
-			return { date: colWidths[1] !== COLUMN_HIDDEN, author: colWidths[2] !== COLUMN_HIDDEN, commit: colWidths[3] !== COLUMN_HIDDEN };
+			return { date: colWidths[1] !== COLUMN_HIDDEN, author: false, commit: false };
 		} else {
 			let defaults = this.config.defaultColumnVisibility;
-			return { date: defaults.date, author: defaults.author, commit: defaults.commit };
+			return { date: defaults.date, author: false, commit: false };
 		}
 	}
 
@@ -2767,7 +2794,7 @@ class GitGraphView {
 
 	public getNumColumns() {
 		let colVisibility = this.getColumnVisibility();
-		return 2 + (colVisibility.date ? 1 : 0) + (colVisibility.author ? 1 : 0) + (colVisibility.commit ? 1 : 0);
+		return (this.renderedNarrowWindow ? 2 : 3) + (colVisibility.date ? 1 : 0) + (colVisibility.author ? 1 : 0) + (colVisibility.commit ? 1 : 0);
 	}
 
 	/**
@@ -2853,9 +2880,7 @@ class GitGraphView {
 	 * Get the total height of the header rows (the main controls row + the Pinned row).
 	 */
 	public getHeaderHeight() {
-		return this.controlsElem.clientHeight
-			+ (document.getElementById('conflictBanner')?.clientHeight ?? 0)
-			+ (this.pinnedControlsElem !== null && this.pinnedControlsElem.style.display !== 'none' ? this.pinnedControlsElem.clientHeight : 0);
+		return 0;
 	}
 
 
@@ -2930,7 +2955,7 @@ window.addEventListener('load', () => {
 
 	TextFormatter.registerCustomEmojiMappings(initialState.config.customEmojiShortcodeMappings);
 
-	const viewElem = document.getElementById('view');
+	const viewElem = document.getElementById('content');
 	if (viewElem === null) return;
 
 	// A page replacing one left behind by an Extension Host restart has no state of its own yet:

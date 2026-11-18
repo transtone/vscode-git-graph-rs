@@ -115,8 +115,8 @@ const VIEW_HTML = `<!DOCTYPE html><html><head></head><body>
 	<div id="content">
 		<div id="commitGraph"></div>
 		<div id="commitTable"></div>
+		<div id="footer"></div>
 	</div>
-	<div id="footer"></div>
 </div>
 </body></html>`;
 
@@ -226,7 +226,7 @@ export async function bootView(total, options = {}) {
 	/* jsdom has no layout engine: emulate the scroll container of the view. scrollTop is a plain
 	 * stored value clamped at 0; scrollHeight grows with the rendered commit rows (uniform row
 	 * height, the same model the windowed renderer uses); clientHeight is the fixed viewport. */
-	const viewElem = document.getElementById('view');
+	const viewElem = document.getElementById('content');
 	let scrollTopValue = 0;
 	Object.defineProperty(viewElem, 'scrollTop', {
 		get: () => scrollTopValue,

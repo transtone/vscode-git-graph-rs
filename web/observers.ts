@@ -62,8 +62,7 @@ function applyGraphColumnAutoLayout(view: GitGraphView) {
 	view.tableElem.className = 'autoLayout limitGraphWidth';
 	view.tableElem.style.setProperty(CSS_PROP_LIMIT_GRAPH_WIDTH, width + 'px');
 	view.graph.limitMaxWidth(width);
-	const graphElem = document.getElementById('commitGraph');
-	if (graphElem !== null) graphElem.style.left = graphColElem.offsetLeft + 'px';
+	view.graph.setLeft(view.getGraphColumnLeft());
 }
 
 
@@ -1038,13 +1037,14 @@ function observeTableEvents(view: GitGraphView) {
 
 			} else {
 
-				let isHead = eventElem.classList.contains(CLASS_REF_HEAD), isRemoteCombinedWithHead = eventTarget.classList.contains('gitRefHeadRemote');
+				const remoteElem = eventTarget.closest<HTMLElement>('.gitRefHeadRemote');
+				let isHead = eventElem.classList.contains(CLASS_REF_HEAD), isRemoteCombinedWithHead = remoteElem !== null && eventElem.contains(remoteElem);
 
 				if (isHead && isRemoteCombinedWithHead) {
 
-					target.ref = unescapeHtml((<HTMLElement>eventTarget).dataset.fullref!);
+					target.ref = unescapeHtml(remoteElem!.dataset.fullref!);
 
-					target.elem = <HTMLElement>eventTarget;
+					target.elem = remoteElem!;
 
 					isHead = false;
 
@@ -1056,7 +1056,7 @@ function observeTableEvents(view: GitGraphView) {
 
 				} else {
 
-					const remote = unescapeHtml((isRemoteCombinedWithHead ? <HTMLElement>eventTarget : eventElem).dataset.remote!);
+					const remote = unescapeHtml((isRemoteCombinedWithHead ? remoteElem! : eventElem).dataset.remote!);
 
 					actions = getRemoteBranchContextMenuActions(view, remote, target);
 
@@ -1138,7 +1138,7 @@ function makeTableResizable(view: GitGraphView) {
 	// instead of document.getElementsByClassName: that searches the whole document (every cell of
 	// every commit row) for a handful of matches, and - being a live HTMLCollection - would also
 	// re-run that document-wide scan on every .length/indexed access below if captured directly.
-	let colHeadersElem = document.getElementById('tableColHeaders')!, cols = Array.from(colHeadersElem.children) as HTMLElement[];
+	let colHeadersElem = document.getElementById('tableColHeaders')!, cols = Array.from(colHeadersElem.children).filter(elem => elem.classList.contains('tableColHeader')) as HTMLElement[];
 
 	let columnWidths: GG.ColumnWidth[], mouseX = -1, col = -1, colIndex = -1;
 
@@ -1153,7 +1153,7 @@ function makeTableResizable(view: GitGraphView) {
 
 		for (const header of cols) {
 			const index = parseInt(header.dataset.col!);
-			if (index !== 1) header.style.width = columnWidths[index] + 'px';
+			if (index !== 1 && index !== 5) header.style.width = columnWidths[index] + 'px';
 		}
 		const graphHeader = cols.find((header) => header.dataset.col === '0')!;
 		graphHeader.style.padding = '';
@@ -1206,17 +1206,19 @@ function makeTableResizable(view: GitGraphView) {
 
 		let defaults = view.config.defaultColumnVisibility;
 
-		columnWidths = [COLUMN_AUTO, COLUMN_AUTO, defaults.date ? COLUMN_AUTO : COLUMN_HIDDEN, defaults.author ? COLUMN_AUTO : COLUMN_HIDDEN, defaults.commit ? COLUMN_AUTO : COLUMN_HIDDEN];
+		columnWidths = [COLUMN_AUTO, COLUMN_AUTO, defaults.date ? COLUMN_AUTO : COLUMN_HIDDEN, defaults.author ? COLUMN_AUTO : COLUMN_HIDDEN, defaults.commit ? COLUMN_AUTO : COLUMN_HIDDEN, 150];
 
 		view.saveColumnWidths(columnWidths);
 
 	} else {
 
-		columnWidths = [cWidths[0], COLUMN_AUTO, cWidths[1], cWidths[2], cWidths[3]];
+		columnWidths = [cWidths[0], COLUMN_AUTO, cWidths[1], cWidths[2], cWidths[3], cWidths[4] ?? 150];
 
 	}
 
 
+
+	view.tableElem.style.setProperty('--refs-column-width', columnWidths[5] + 'px');
 
 	if (columnWidths[0] !== COLUMN_AUTO) {
 
@@ -1246,6 +1248,19 @@ function makeTableResizable(view: GitGraphView) {
 
 			if (mouseDeltaX === 0) return; // the mouse has not moved (yet): nothing to resize
 
+			if (col === 5) {
+				const width = Math.max(COLUMN_MIN_WIDTH, columnWidths[5] + mouseDeltaX);
+				if (width !== columnWidths[5]) {
+					dragMoved = true;
+					columnWidths[5] = width;
+					view.tableElem.style.setProperty('--refs-column-width', width + 'px');
+					if (columnWidths[0] === COLUMN_AUTO) applyGraphColumnAutoLayout(view);
+					view.renderGraph();
+				}
+				mouseX = mouseEvent.clientX;
+				return;
+			}
+
 			if (!dragMoved) {
 				dragMoved = true;
 				if (columnWidths[0] === COLUMN_AUTO) {
@@ -1258,7 +1273,7 @@ function makeTableResizable(view: GitGraphView) {
 					// frozen width was cut off at the column boundary.
 					for (let i = 0; i < cols.length; i++) {
 						let curCol = parseInt(cols[i].dataset.col!);
-						if (curCol !== 1) columnWidths[curCol] = cols[i].clientWidth - COLUMN_LEFT_RIGHT_PADDING;
+						if (curCol !== 1 && curCol !== 5) columnWidths[curCol] = cols[i].clientWidth - COLUMN_LEFT_RIGHT_PADDING;
 					}
 					makeTableFixedLayout();
 				}
